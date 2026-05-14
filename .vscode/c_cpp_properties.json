@@ -1,0 +1,15 @@
+{
+	"configurations": [
+		{
+			"name": "penguinx",
+			"compilerPath": "/usr/bin/c++",
+			"includePath": [
+				"${workspaceFolder}/src/**"
+			],
+			"defines": [
+				"IGNORE_TPP_WRAPPERS"
+			]
+		}
+	],
+	"version": 4
+}

@@ -1,0 +1,16 @@
+{
+	"editor.insertSpaces": false,
+	"editor.detectIndentation": false,
+	"cSpell.words": [
+		"fastcgi",
+		"fclean",
+		"nullglob",
+		"penguinx",
+		"NOLINT",
+		"NOLINTBEGIN",
+		"NOLINTEND",
+		"NOLINTNEXTLINE",
+		"Wextra",
+		"Werror"
+	]
+}

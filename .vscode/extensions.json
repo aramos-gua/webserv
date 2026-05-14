@@ -1,0 +1,8 @@
+{
+	"recommendations": [
+		"ms-vscode.makefile-tools",
+		"ms-vscode.cpptools",
+		"kube.42header",
+		"streetsidesoftware.code-spell-checker"
+	]
+}
