@@ -6,7 +6,7 @@
 #    By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/05/12 03:06:34 by emflynn           #+#    #+#              #
-#    Updated: 2026/05/15 00:41:02 by emflynn          ###   ########.fr        #
+#    Updated: 2026/06/03 13:58:43 by emflynn          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -23,6 +23,7 @@ TEST_DIR :=				$(REPO_DIR)/test
 MAKE_DIR :=				$(REPO_DIR)/make
 
 MODULES :=				config/lexing \
+						config/parsing \
 						utils
 BIN :=					$(BIN_DIR)/$(subst /,-,$(NAME))
 LIBS_BASE :=			$(addprefix lib,$(addsuffix .a,$(subst /,-,$(MODULES))))

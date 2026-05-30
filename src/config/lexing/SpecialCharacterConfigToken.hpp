@@ -13,6 +13,8 @@
 #ifndef SPECIAL_CHARACTER_CONFIG_TOKEN_HPP
 #define SPECIAL_CHARACTER_CONFIG_TOKEN_HPP
 
+#include <cstddef>
+
 #include "AConfigToken.hpp"
 
 class SpecialCharacterConfigToken: public AConfigToken
@@ -26,7 +28,8 @@ public:
 	};
 
 	SpecialCharacterConfigToken(void);
-	SpecialCharacterConfigToken(SpecialCharacter content);
+	SpecialCharacterConfigToken(SpecialCharacter content,
+	                            std::size_t lineNumber);
 	SpecialCharacterConfigToken(const SpecialCharacterConfigToken &other);
 	SpecialCharacterConfigToken &operator=(
 		const SpecialCharacterConfigToken &other);

@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/12 03:19:23 by emflynn           #+#    #+#             */
-/*   Updated: 2026/05/14 23:56:40 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/06/02 08:37:26 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,9 +37,7 @@ ConfigLexer::ConfigLexer(const std::string &configFilePath)
 {
 	if (!configStream)
 	{
-		throw std::runtime_error(StringBase()
-		                         << "Couldn't open config file \""
-		                         << configFilePath << "\" for reading");
+		throw ConfigFileNotFoundException(configFilePath);
 	}
 }
 
@@ -87,7 +85,7 @@ ConfigLexer &ConfigLexer::operator>>(AConfigToken **configToken)
 	while (!currentConfigToken || !currentConfigToken->getIsDelimited())
 	{
 		for (std::size_t i = 0;
-		     i < sizeof(LEXING_FUNCS) / sizeof(t_lexing_func); i++)
+		     i < sizeof(LEXING_FUNCS) / sizeof(t_lexing_func); ++i)
 		{
 			if ((this->*LEXING_FUNCS[i])())
 			{
@@ -121,6 +119,13 @@ void ConfigLexer::throwForUnclosedQuoteOrUnterminatedEscape(void) const
 	}
 }
 
+ConfigLexer::ConfigFileNotFoundException::ConfigFileNotFoundException(
+	const std::string &configFilePath)
+	: std::runtime_error(StringBase() << "Couldn't open config file \""
+                                      << configFilePath << "\" for reading")
+{
+}
+
 bool ConfigLexer::delimitCurrentConfigTokenIfConfigStreamExhausted(void)
 {
 	if (currentConfigLineIterator != currentConfigLine.end() ||
@@ -130,7 +135,8 @@ bool ConfigLexer::delimitCurrentConfigTokenIfConfigStreamExhausted(void)
 	}
 	if (!currentConfigToken)
 	{
-		currentConfigToken = new TerminatingConfigToken();
+		currentConfigToken =
+			new TerminatingConfigToken(currentConfigLineNumber);
 	}
 	currentConfigToken->delimit();
 	return true;
@@ -155,7 +161,7 @@ bool ConfigLexer::getNextConfigLineIfCurrentConfigLineExhausted(void)
 		}
 	}
 	std::getline(configStream, currentConfigLine);
-	currentConfigLineNumber++;
+	++currentConfigLineNumber;
 	currentConfigLineIterator = currentConfigLine.begin();
 	return true;
 }
@@ -225,8 +231,8 @@ bool ConfigLexer::enterEscapedSection(void)
 	{
 		if (!currentConfigToken)
 		{
-			currentConfigToken =
-				new WordConfigToken(*currentConfigLineIterator);
+			currentConfigToken = new WordConfigToken(*currentConfigLineIterator,
+			                                         currentConfigLineNumber);
 		}
 		else
 		{
@@ -248,7 +254,8 @@ bool ConfigLexer::enterQuotedSection(void)
 	}
 	if (!currentConfigToken)
 	{
-		currentConfigToken = new WordConfigToken(*currentConfigLineIterator);
+		currentConfigToken = new WordConfigToken(*currentConfigLineIterator,
+		                                         currentConfigLineNumber);
 	}
 	else
 	{
@@ -295,15 +302,15 @@ bool ConfigLexer::handleSpecialCharacter(void)
 	{
 	case ';':
 		currentConfigToken = new SpecialCharacterConfigToken(
-			SpecialCharacterConfigToken::SEMICOLON);
+			SpecialCharacterConfigToken::SEMICOLON, currentConfigLineNumber);
 		break;
 	case '{':
 		currentConfigToken = new SpecialCharacterConfigToken(
-			SpecialCharacterConfigToken::LEFT_BRACE);
+			SpecialCharacterConfigToken::LEFT_BRACE, currentConfigLineNumber);
 		break;
 	case '}':
 		currentConfigToken = new SpecialCharacterConfigToken(
-			SpecialCharacterConfigToken::RIGHT_BRACE);
+			SpecialCharacterConfigToken::RIGHT_BRACE, currentConfigLineNumber);
 		break;
 	}
 	currentConfigToken->delimit();
@@ -351,7 +358,8 @@ bool ConfigLexer::beginOrContinueWord(void)
 	std::string substring(originalIterator, currentConfigLineIterator);
 	if (!currentConfigToken)
 	{
-		currentConfigToken = new WordConfigToken(substring);
+		currentConfigToken =
+			new WordConfigToken(substring, currentConfigLineNumber);
 	}
 	else
 	{

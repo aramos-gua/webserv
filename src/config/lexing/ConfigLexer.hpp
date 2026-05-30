@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 
 #include "AConfigToken.hpp"
@@ -29,6 +30,12 @@ public:
 	ConfigLexer &operator>>(AConfigToken **configToken);
 
 	void throwForUnclosedQuoteOrUnterminatedEscape(void) const;
+
+	class ConfigFileNotFoundException: public std::runtime_error
+	{
+	public:
+		ConfigFileNotFoundException(const std::string &configFilePath);
+	};
 
 protected:
 	ConfigLexer(const ConfigLexer &other);

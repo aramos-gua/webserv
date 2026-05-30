@@ -13,13 +13,13 @@
 #include "SpecialCharacterConfigToken.hpp"
 
 SpecialCharacterConfigToken::SpecialCharacterConfigToken(void)
-	: AConfigToken(SPECIAL_CHARACTER), content()
+	: AConfigToken(SPECIAL_CHARACTER, 0), content()
 {
 }
 
 SpecialCharacterConfigToken::SpecialCharacterConfigToken(
-	SpecialCharacter content)
-	: AConfigToken(SPECIAL_CHARACTER), content(content)
+	SpecialCharacter content, std::size_t lineNumber)
+	: AConfigToken(SPECIAL_CHARACTER, lineNumber), content(content)
 {
 }
 

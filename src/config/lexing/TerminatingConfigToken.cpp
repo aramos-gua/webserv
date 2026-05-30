@@ -12,7 +12,13 @@
 
 #include "TerminatingConfigToken.hpp"
 
-TerminatingConfigToken::TerminatingConfigToken(void): AConfigToken(TERMINATING)
+TerminatingConfigToken::TerminatingConfigToken(void)
+	: AConfigToken(TERMINATING, 0)
+{
+}
+
+TerminatingConfigToken::TerminatingConfigToken(std::size_t lineNumber)
+	: AConfigToken(TERMINATING, lineNumber)
 {
 }
 

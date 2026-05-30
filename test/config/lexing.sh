@@ -6,7 +6,7 @@ export DEFAULT="\033[0m"
 
 run_error_test() {
 	if [ "$CONFIG_FILE" ]; then
-		CONFIG_FILE="../../../test/config/examples/$CONFIG_FILE"
+		CONFIG_FILE="../../../test/config/lexing-config-examples/$CONFIG_FILE"
 	fi
 	export ACTUAL="$(../../../bin/config-lexing $CONFIG_FILE 2>&1)"
 	cmp -s <(echo "$EXPECTED") <(echo "$ACTUAL") \
@@ -31,7 +31,7 @@ Usage: ../../../bin/config-lexing <path to config file>"
 	export CONFIG_FILE="nonexistent.conf"
 	export EXPECTED="\
 An error occurred during execution:
-Couldn't open config file \"../../../test/config/examples/nonexistent.conf\" for reading.
+Couldn't open config file \"../../../test/config/lexing-config-examples/nonexistent.conf\" for reading.
 Unable to continue."
 	run_error_test
 
@@ -88,7 +88,7 @@ Unable to continue."
 fi
 
 run_success_test() {
-	CONFIG_FILE="../../../test/config/examples/$CONFIG_FILE"
+	CONFIG_FILE="../../../test/config/lexing-config-examples/$CONFIG_FILE"
 	export ACTUAL="$(../../../bin/config-lexing $CONFIG_FILE 2>&1)"
 	cmp -s <(echo "$EXPECTED") <(echo "$ACTUAL") \
 		&& (echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME") \

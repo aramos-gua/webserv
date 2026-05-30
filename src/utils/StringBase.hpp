@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/19 23:23:55 by emflynn           #+#    #+#             */
-/*   Updated: 2026/04/22 19:13:06 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/05/24 17:09:27 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ public:
 	StringBase &operator<<(const TElement &element);
 	StringBase &operator<<(std::ostream &(*manipulator)(std::ostream &));
 
-	operator std::string() const;
+	operator std::string(void) const;
 
 private:
 	std::ostringstream stream;

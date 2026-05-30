@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/19 23:32:28 by emflynn           #+#    #+#             */
-/*   Updated: 2026/04/22 18:27:33 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/05/24 17:09:43 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ StringBase &StringBase::operator<<(std::ostream &(*manipulator)(std::ostream &))
 	return *this;
 }
 
-StringBase::operator std::string() const
+StringBase::operator std::string(void) const
 {
 	return stream.str();
 }
