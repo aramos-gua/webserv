@@ -13,8 +13,8 @@ class Server {
 		Server(const ServerConfig &cfg);
 		~Server();
 
-		bool	start();
-		void	run();
+		bool	startServer();
+		void	runServer();
 
 	private:
 		ServerConfig			_cfg;
@@ -22,13 +22,13 @@ class Server {
 		std::vector<pollfd>		_pfds;
 		std::map<int, Client>	_clients;
 
-		bool					dispatch(size_t i);
+		bool					clientEventHandler(size_t i);
 		void					acceptClient();
 		void					removeClient(int fd);
 		void					syncEvents(int fd);
 
 		static int				setNonblock(int fd);
-		static int				makeListener(int fd);
+		static int				createListener(int fd);
 
 		Server(const Server&);
 		Server &operator=(const Server&);
