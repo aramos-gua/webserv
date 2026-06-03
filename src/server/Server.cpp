@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-Server::Server(const ServerConfig &cfg) : _config(cfg), _listener(-1)
+Server::Server(const ServerConfig &cfg) : _cfg(cfg), _listener(-1)
 {
 
 }
@@ -114,7 +114,7 @@ void	Server::acceptClient()
 	if (getnameinfo(reinterpret_cast<sockaddr*>(&client_addr), client_len,
 				host, sizeof(host), svc, sizeof(svc),
 				NI_NUMERICHOST | NI_NUMERICSERV) == 0)
-		std::cout << "connecting fd= " << client_fd << " from " << host << ":" << svc << std::endl;
+		std::cout << "Connected fd= " << client_fd << " from " << host << ":" << svc << std::endl;
 }
 
 void	Server::removeClient(int fd)
