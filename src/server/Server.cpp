@@ -103,7 +103,12 @@ void	Server::acceptClient()
 	client_fd = accept(_listener, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
 	if (client_fd < 0)
 		return;
-	setNonblock(client_fd);
+	if (setNonblock(client_fd) < 0)
+	{
+		perror("fcntl");
+		close(client_fd);
+		return;
+	}
 	_clients[client_fd] = Client();
 
 	pfd.fd = client_fd;
@@ -135,7 +140,7 @@ void	Server::removeClient(int fd)
 
 void	Server::syncEvents(int fd)
 {
-	for (size_t i = 0; i < _pfds.size; ++i)
+	for (size_t i = 0; i < _pfds.size(); ++i)
 	{
 		if (_pfds[i].fd == fd)
 		{
