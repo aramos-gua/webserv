@@ -78,9 +78,9 @@ bool	Server::clientEventHandler(size_t i)
 	Client	&cl = _clients[fd];
 
 	if (rev & POLLIN)
-		cl.onReadable(fd);
+		cl.onRecv(fd);
 	if (!cl.closeFlag() && (rev & POLLOUT))
-		cl.onWritable(fd);
+		cl.onSend(fd);
 	if ((rev & (POLLERR | POLLHUP)) || cl.closeFlag())
 	{
 		removeClient(fd);
@@ -138,6 +138,17 @@ void	Server::removeClient(int fd)
 	}
 }
 
+/*
+ *	register POLLOUT when _send_buf is non-empty
+ *
+ *	-> data gets queued into _send_buf during onRecv
+ *	-> syncEvents registers POLLOUT
+ *	-> next poll waks on writable
+ *	-> onWritable flushes the buffer
+ *	-> next syncEvents clears POLLOUT again
+ *
+ *
+ */
 void	Server::syncEvents(int fd)
 {
 	for (size_t i = 0; i < _pfds.size(); ++i)
