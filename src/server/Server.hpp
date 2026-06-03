@@ -28,7 +28,7 @@ class Server {
 		void					syncEvents(int fd);
 
 		static int				setNonblock(int fd);
-		static int				createListener(int fd);
+		static int				createListener(int port);
 
 		Server(const Server&);
 		Server &operator=(const Server&);
