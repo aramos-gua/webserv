@@ -13,8 +13,8 @@ class Client {
 		bool	writeFlag()const;
 		bool	closeFlag()const;
 
-		void	onReadable(int fd);
-		void	onWritable(int fd);
+		void	onRecv(int fd);
+		void	onSend(int fd);
 
 	private:
 		std::string	_recv_buf;
@@ -22,7 +22,7 @@ class Client {
 		bool		_close;
 
 		//TODO: Fill with HTTP parsing
-		//buf -> all bytes received so far - erase what is used
+		// buf -> all bytes received so far - erase what is used
 		//return full response to send, or "" to wait for more data
 		std::string handle(std::string &buf);
 };

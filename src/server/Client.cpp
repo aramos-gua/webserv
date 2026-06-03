@@ -38,7 +38,7 @@ bool	Client::closeFlag() const
 	return (_close);
 }
 
-void	Client::onReadable(int fd)
+void	Client::onRecv(int fd)
 {
 	char		tmp[BUFSIZE];
 	std::string resp;
@@ -69,7 +69,7 @@ std::string	Client::handle(std::string &buf)
 	return ("");
 }
 
-void	Client::onWritable(int fd)
+void	Client::onSend(int fd)
 {
 	ssize_t	bytes;
 
