@@ -6,12 +6,15 @@
 class Client {
 	public:
 		Client();
+		Client(const Client& copy);
+		Client &operator=(const Client& copy);
+		~Client();
 
 		bool	writeFlag()const;
 		bool	closeFlag()const;
 
 		void	onReadable(int fd);
-		void	onWriteable(int fd);
+		void	onWritable(int fd);
 
 	private:
 		std::string	_recv_buf;
