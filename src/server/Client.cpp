@@ -13,6 +13,10 @@ Client::Client(const Client &copy) : _recv_buf(copy._recv_buf), _send_buf(copy._
 {
 }
 
+Client::~Client()
+{
+}
+
 Client &Client::operator=(const Client &copy)
 {
 	if (this != &copy)
@@ -41,7 +45,13 @@ void	Client::onReadable(int fd)
 	ssize_t		bytes;
 
 	bytes = recv(fd, tmp, sizeof(tmp), 0);
-	if (bytes <= 0)
+	if (bytes < 0)
+	{
+		if (errno != EAGAIN && errno != EWOULDBLOCK)
+			_close = true;
+		return;
+	}
+	if (bytes == 0)
 	{
 		_close = true;
 		return;
@@ -50,6 +60,13 @@ void	Client::onReadable(int fd)
 	resp = handle(_recv_buf);
 	if (!resp.empty())
 		_send_buf += resp;
+}
+
+std::string	Client::handle(std::string &buf)
+{
+	(void)buf;
+	//TODO: Fill with HTTP parsing
+	return ("");
 }
 
 void	Client::onWritable(int fd)
