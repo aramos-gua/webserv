@@ -13,7 +13,58 @@
 #include "RequestParser.hpp"
 #include <stdexcept>
 #include <sstream>
+/* ************************************************************************** */
+/*                              CONSTRUCTOR                                   */
+/* ************************************************************************** */
+RequestParser::RequestParser(size_t maxBodySize) : 
+	_state(PARSE_REQUEST_LINE),
+	_buffer(),
+	_req(),
+	_error(),
+	_maxBodySize(maxBodySize),
+	_bodyBytesNeeded(0)
+{}
 
+/* ************************************************************************** */
+/*                              COPY CONSTRUCTOR                              */
+/* ************************************************************************** */
+RequestParser::RequestParser(const RequestParser &other) :
+	_state(other.state),
+	_buffer(other.buffer),
+	_req(other.req),
+	_error(other.error),
+	_maxBodySize(other.maxBodySize),
+	_bodyBytesNeeded(other._bodyBytesNeeded)
+{}
+
+/* ************************************************************************** */
+/*                          COPY ASSIGNMENT OPERATOR                          */
+/* ************************************************************************** */
+RequestParser &RequestParser::operator=(const RequestParser &other)
+{
+	if (this != other)
+	{
+		_state = other._state;
+		_buffer = other._buffer;
+		_req = other._req;
+		_error = other._error;
+		_maxBodySize = other._maxBodySize;
+		_bodyBytesNeeded = other._bodyBytesNeeded;
+	}
+	return (*this);
+}
+
+/* ************************************************************************** */
+/*                               DESTRUCTOR                                   */
+/* ************************************************************************** */
+RequestParser::~RequestParser()
+{
+	return ;
+}
+
+/* ************************************************************************** */
+/*                               MEMBER FUNCTIONS                             */
+/* ************************************************************************** */
 static std::string	trim(const std::string& str)
 {
 	size_t	start;
@@ -28,6 +79,56 @@ static std::string	trim(const std::string& str)
 	return (str.substr(start, end - start));
 }
 
+void	RequestParser::reset()
+{
+	_state = PARSE_REQUEST_LINE;
+	_buffer.clear();
+	_req = HttpRequest();
+	_error.clear();
+	_bodyBytesNeeded = 0;
+}
+
+const	HttpRequest &RequestParser::getRequest() const
+{
+	return (_req);
+}
+
+const std::string &RequestParser::getError() const
+{
+	return (_error);
+}
+
+RequestParser::Result RequestParser::feed(const char *data, size_t len)
+{
+	if (_state == PARSE_ERROR)
+		return (ERROR);
+	if (_state == PARSE_DONE)
+		return (COMPLETE);
+	_buffer.append(data, len);
+	bool progress = true;
+	while (progress)
+	{
+		progress = false;
+		if (_state == PARSE_REQUEST_LINE)
+			progress = parseRequestLine();
+		else if (_state = PARSE_HEADERS)
+			progress = parseHeaders();
+		else if (_state = PARSE_BODY)
+			progress = parseBody();
+		else if (_state == PARSE_DONE)
+			return (COMPLETE);
+		else if (_state = PARSE_ERROR)
+			return (ERROR);
+	}
+	if (_state = PARSE_DONE)
+		return (COMPLETE);
+	if (_state = PARSE_ERROR)
+		return (ERROR);
+	return (INCOMPLETE);
+}
+/* ************************************************************************** */
+/*                                OTHER FUNCTIONS                             */
+/* ************************************************************************** */
 HttpRequest	RequestParser::parse(const std::string& rawRequest)
 {
 	HttpRequest	req;
