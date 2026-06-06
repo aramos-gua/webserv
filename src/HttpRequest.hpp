@@ -16,7 +16,7 @@
 # include <string>
 # include <map>
 
-struct HttpRequest
+struct	HttpRequest
 {
 	std::string	method;
 	std::string	path;
@@ -25,6 +25,9 @@ struct HttpRequest
 	std::map<std::string, std::string>	headers;
 
 	std::string	body;
+	size_t		contentLength;
+
+	HttpRequest() : contentLength(0){}
 };
 
 #endif
