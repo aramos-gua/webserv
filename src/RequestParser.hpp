@@ -26,7 +26,7 @@ class	RequestParser
 		};
 
 		RequestParser(size_t maxBodySize = 1024 * 1024);
-		RequestParser(const RequestParser other);
+		RequestParser(const RequestParser &other);
 		RequestParser &operator=(const RequestParser &other);
 		~RequestParser();
 
@@ -37,11 +37,11 @@ class	RequestParser
 
 	private:
 		enum	State {
-				PARSE_REQUEST_LINE;
-				PARSE_HEADERS;
-				PARSE_BODY;
-				PARSE_DONE;
-				PARSE_ERROR;
+				PARSE_REQUEST_LINE,
+				PARSE_HEADERS,
+				PARSE_BODY,
+				PARSE_DONE,
+				PARSE_ERROR
 		};
 
 		State		_state;

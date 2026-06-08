@@ -98,6 +98,13 @@ const std::string &RequestParser::getError() const
 	return (_error);
 }
 
+bool	RequestParser::parseRequestLine()
+{
+	size_t	pos = _buffer.find("\r\n");
+	if (pos == std::string::npos)
+		return (false);
+}
+
 RequestParser::Result RequestParser::feed(const char *data, size_t len)
 {
 	if (_state == PARSE_ERROR)
@@ -111,18 +118,18 @@ RequestParser::Result RequestParser::feed(const char *data, size_t len)
 		progress = false;
 		if (_state == PARSE_REQUEST_LINE)
 			progress = parseRequestLine();
-		else if (_state = PARSE_HEADERS)
+		else if (_state == PARSE_HEADERS)
 			progress = parseHeaders();
-		else if (_state = PARSE_BODY)
+		else if (_state == PARSE_BODY)
 			progress = parseBody();
 		else if (_state == PARSE_DONE)
 			return (COMPLETE);
-		else if (_state = PARSE_ERROR)
+		else if (_state == PARSE_ERROR)
 			return (ERROR);
 	}
-	if (_state = PARSE_DONE)
+	if (_state == PARSE_DONE)
 		return (COMPLETE);
-	if (_state = PARSE_ERROR)
+	if (_state == PARSE_ERROR)
 		return (ERROR);
 	return (INCOMPLETE);
 }
