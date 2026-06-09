@@ -13,6 +13,7 @@
 #include "RequestParser.hpp"
 #include <stdexcept>
 #include <sstream>
+#include <cstdlib>
 /* ************************************************************************** */
 /*                              CONSTRUCTOR                                   */
 /* ************************************************************************** */
@@ -29,10 +30,10 @@ RequestParser::RequestParser(size_t maxBodySize) :
 /*                              COPY CONSTRUCTOR                              */
 /* ************************************************************************** */
 RequestParser::RequestParser(const RequestParser &other) :
-	_state(other.state),
-	_buffer(other.buffer),
-	_req(other.req),
-	_error(other.error),
+	_state(other._state),
+	_buffer(other._buffer),
+	_req(other._req),
+	_error(other._error),
 	_maxBodySize(other.maxBodySize),
 	_bodyBytesNeeded(other._bodyBytesNeeded)
 {}
@@ -65,7 +66,7 @@ RequestParser::~RequestParser()
 /* ************************************************************************** */
 /*                               MEMBER FUNCTIONS                             */
 /* ************************************************************************** */
-static std::string	trim(const std::string& str)
+std::string RequestParser::trim(const std::string& str)
 {
 	size_t	start;
 	size_t	end;
@@ -103,7 +104,7 @@ bool	RequestParser::parseRequestLine()
 	size_t	pos = _buffer.find("\r\n");
 	if (pos == std::string::npos)
 		return (false);
-	std::string	line = buffer.substr(0, pos);
+	std::string	line = _buffer.substr(0, pos);
 	_buffer.erase(0, pos + 2);
 	std::istringstream iss(line);
 	if (!(iss >> _req.method >> _req.path >> _req.version))
@@ -125,9 +126,9 @@ bool	RequestParser::parseHeaders()
 	_buffer.erase(0, pos + 2);
 	if (line.empty())
 	{
-		if (_req.headers.count("Content-length"))
+		if (_req.headers.count("Content-Length"))
 		{
-			_bodyBytesNeeded = std::atoi(_req.headers["Content-length"].c_str());
+			_bodyBytesNeeded = std::atoi(_req.headers["Content-Length"].c_str());
 		}
 		_state = PARSE_BODY;
 		return (true);
@@ -150,7 +151,7 @@ bool	RequestParser::parseBody()
 	}
 	if (_buffer.size() < _bodyBytesNeeded)
 		return (false);
-	_req.body = buffer.substr(0, _bodyBytesNeeded);
+	_req.body = _buffer.substr(0, _bodyBytesNeeded);
 	_buffer.erase(0, _bodyBytesNeeded);
 	_state = PARSE_DONE;
 	return (true);
@@ -173,10 +174,6 @@ RequestParser::Result RequestParser::feed(const char *data, size_t len)
 			progress = parseHeaders();
 		else if (_state == PARSE_BODY)
 			progress = parseBody();
-		else if (_state == PARSE_DONE)
-			return (COMPLETE);
-		else if (_state == PARSE_ERROR)
-			return (ERROR);
 	}
 	if (_state == PARSE_DONE)
 		return (COMPLETE);
