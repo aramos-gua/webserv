@@ -25,6 +25,11 @@ struct HttpResponse
 	std::map<std::string, std::string>	headers;
 
 	std::string	body;
-}
+	HttpResponse() :
+		statusCode(200),
+		version("HTTP/1.0"),
+		description("OK")
+	{}
+};
 
 #endif
