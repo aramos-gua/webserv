@@ -103,6 +103,57 @@ bool	RequestParser::parseRequestLine()
 	size_t	pos = _buffer.find("\r\n");
 	if (pos == std::string::npos)
 		return (false);
+	std::string	line = buffer.substr(0, pos);
+	_buffer.erase(0, pos + 2);
+	std::istringstream iss(line);
+	if (!(iss >> _req.method >> _req.path >> _req.version))
+	{
+		_state = PARSE_ERROR;
+		_error = "Invalid request line";
+		return (false);
+	}
+	_state = PARSE_HEADERS;
+	return (true);
+}
+
+bool	RequestParser::parseHeaders()
+{
+	size_t	pos = _buffer.find("\r\n");
+	if (pos == std::string::npos)
+		return (false);
+	std::string line =_buffer.substr(0, pos);
+	_buffer.erase(0, pos + 2);
+	if (line.empty())
+	{
+		if (_req.headers.count("Content-length"))
+		{
+			_bodyBytesNeeded = std::atoi(_req.headers["Content-length"].c_str());
+		}
+		_state = PARSE_BODY;
+		return (true);
+	}
+	size_t	sep = line.find(":");
+	if (sep == std::string::npos)
+		return (true);
+	std::string	key = trim(line.substr(0, sep));
+	std::string	val = trim(line.substr(sep  + 1));
+	_req.headers[key] = val;
+	return (true);
+}
+
+bool	RequestParser::parseBody()
+{
+	if (_bodyBytesNeeded == 0)
+	{
+		_state = PARSE_DONE;
+		return (true);
+	}
+	if (_buffer.size() < _bodyBytesNeeded)
+		return (false);
+	_req.body = buffer.substr(0, _bodyBytesNeeded);
+	_buffer.erase(0, _bodyBytesNeeded);
+	_state = PARSE_DONE;
+	return (true);
 }
 
 RequestParser::Result RequestParser::feed(const char *data, size_t len)
