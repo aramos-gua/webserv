@@ -5,11 +5,11 @@
 
 static const int BUFSIZE = 2048;	//TODO: Change?
 
-Client::Client() : _close(false)
+Client::Client() : _close(false), _recv_buf(), _send_buf(), _parser()
 {
 }
 
-Client::Client(const Client &copy) : _recv_buf(copy._recv_buf), _send_buf(copy._send_buf), _close(copy._close)
+Client::Client(const Client &copy) : _recv_buf(copy._recv_buf), _send_buf(copy._send_buf), _close(copy._close), _parser(copy._parser)
 {
 }
 
