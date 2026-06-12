@@ -2,6 +2,9 @@
 #define CLIENT_HPP
 
 #include <string>
+#include "../RequestParser.hpp"
+#include "../HttpResponse.hpp"
+#include "../HttpResponseBuilder.hpp"
 
 class Client {
 	public:
@@ -24,6 +27,7 @@ class Client {
 		//TODO: Fill with HTTP parsing
 		// buf -> all bytes received so far - erase what is used
 		//return full response to send, or "" to wait for more data
+		RequestParser	_parser;
 		std::string handle(std::string &buf);
 };
 
