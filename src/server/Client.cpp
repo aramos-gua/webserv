@@ -24,6 +24,7 @@ Client &Client::operator=(const Client &copy)
 		this->_recv_buf = copy._recv_buf;
 		this->_send_buf = copy._send_buf;
 		this->_close = copy._close;
+		this->_parser = copy._parser;
 	}
 	return (*this);
 }
@@ -41,7 +42,6 @@ bool	Client::closeFlag() const
 void	Client::onRecv(int fd)
 {
 	char		tmp[BUFSIZE];
-	std::string resp;
 	ssize_t		bytes;
 
 	bytes = recv(fd, tmp, sizeof(tmp), 0);
@@ -56,18 +56,66 @@ void	Client::onRecv(int fd)
 		_close = true;
 		return;
 	}
-	_recv_buf.append(tmp, bytes);
-	resp = handle(_recv_buf);
-	if (!resp.empty())
-		_send_buf += resp;
+	RequestParser::Result res = _parser.feed(tmp, static_cast<size_t>(bytes));
+	if (res == RequestParser::COMPLETE)
+	{
+		const HttpRequest	&req = _parser.getRequest();
+		HttpResponse	resp;
+		resp.statusCode = 200;
+		resp.version = "HTTP/1.0";
+		resp.description = "OK";
+		resp.headers["Content-Type"] = "text/plain";
+		resp.body = "Webserv is working\n";
+		std::string	raw = HttpResponseBuilder::build(resp);
+		_send_buf += raw;
+		_parser.reset();
+	}
+	else if (res == RequestParser::ERROR)
+	{
+		HttpResponse	resp;
+		resp.statusCode = 200;
+		resp.version = "HTTP/1.0";
+		resp.description = "Bad Request";
+		resp.headers["Content-Type"] = "text/plain";
+		resp.body = "Malformed request\n";
+		std::string	raw = HttpResponseBuilder::build(resp);
+		_send_buf += raw;
+		_close = true;
+	}
 }
 
-std::string	Client::handle(std::string &buf)
-{
-	(void)buf;
-	//TODO: Fill with HTTP parsing
-	return ("");
-}
+//TODO: old version
+//
+// void	Client::onRecv(int fd)
+// {
+// 	char		tmp[BUFSIZE];
+// 	std::string resp;
+// 	ssize_t		bytes;
+//
+// 	bytes = recv(fd, tmp, sizeof(tmp), 0);
+// 	if (bytes < 0)
+// 	{
+// 		if (errno != EAGAIN && errno != EWOULDBLOCK)
+// 			_close = true;
+// 		return;
+// 	}
+// 	if (bytes == 0)
+// 	{
+// 		_close = true;
+// 		return;
+// 	}
+// 	_recv_buf.append(tmp, bytes);
+// 	resp = handle(_recv_buf);
+// 	if (!resp.empty())
+// 		_send_buf += resp;
+// }
+
+// std::string	Client::handle(std::string &buf)
+// {
+// 	(void)buf;
+// 	//TODO: Fill with HTTP parsing
+// 	return ("");
+// }
 
 void	Client::onSend(int fd)
 {
