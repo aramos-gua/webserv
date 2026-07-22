@@ -5,7 +5,7 @@
 
 static const int BUFSIZE = 2048;	//TODO: Change?
 
-Client::Client() : _close(false), _recv_buf(), _send_buf(), _parser()
+Client::Client() : _recv_buf(), _send_buf(), _close(false), _parser()
 {
 }
 
@@ -59,7 +59,6 @@ void	Client::onRecv(int fd)
 	RequestParser::Result res = _parser.feed(tmp, static_cast<size_t>(bytes));
 	if (res == RequestParser::COMPLETE)
 	{
-		const HttpRequest	&req = _parser.getRequest();
 		HttpResponse	resp;
 		resp.statusCode = 200;
 		resp.version = "HTTP/1.0";

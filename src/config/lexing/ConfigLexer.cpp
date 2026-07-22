@@ -15,9 +15,10 @@
 
 #include "ConfigLexer.hpp"
 #include "SpecialCharacterConfigToken.hpp"
-#include "StringBase.hpp"
 #include "TerminatingConfigToken.hpp"
 #include "WordConfigToken.hpp"
+
+#include "../../utils/StringBase.hpp"
 
 ConfigLexer::ConfigLexer(void)
 	: configStream(NULL), currentConfigLineNumber(0),
@@ -29,7 +30,7 @@ ConfigLexer::ConfigLexer(void)
 }
 
 ConfigLexer::ConfigLexer(const std::string &configFilePath)
-	: configStream(configFilePath), currentConfigLineNumber(0),
+	: configStream(configFilePath.c_str()), currentConfigLineNumber(0),
 	  currentConfigLineIterator(currentConfigLine.end()),
 	  currentConfigToken(NULL), escapeMode(UNESCAPED), quoteMode(UNQUOTED),
 	  mostRecentOpeningQuoteLineNumber(0),

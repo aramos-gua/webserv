@@ -35,6 +35,8 @@ class	RequestParser
 		const	std::string	&getError() const;
 		void	reset();
 
+		static HttpRequest	parse(const std::string &rawRequest);
+
 	private:
 		enum	State {
 				PARSE_REQUEST_LINE,
