@@ -10,31 +10,52 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-Server::Server(const ServerConfig &cfg) : _cfg(cfg), _listener(-1)
+Server::Server(const std::vector<ServerConfig> &cfgs) : _cfgs(cfgs)
 {
 
 }
 
 Server::~Server()
 {
-	if (_listener >= 0)
-		close(_listener);
+	for (size_t i = 0; i < _listeners.size(); ++i)
+	{
+		if (_listeners[i] >= 0)
+			close(_listeners[i]);
+	}
 }
 
 bool	Server::startServer()
 {
-	pollfd	lpfd;
+	for (size_t i = 0; i < _cfgs.size(); ++i)
+	{
+		bool	duplicate = false;
+		for (size_t j = 0; j < i; ++j)
+		{
+			if (_cfgs[j].host == _cfgs[i].host && _cfgs[j].port == _cfgs[i].port)
+			{
+				duplicate = true;
+				break;
+			}
+		}
+		if (duplicate)
+			continue;
 
-	_listener = createListener(_cfg.port);
-	if (_listener < 0)
-		return (false);
-	lpfd.fd = _listener;
-	lpfd.events = POLLIN;
-	lpfd.revents = 0;
-	_pfds.push_back(lpfd);
+		int	fd = createListener(_cfgs[i].host, _cfgs[i].port);
+		if (fd < 0)
+			return (false);
 
-	std::cout << "Listening on port: " << _cfg.port << std::endl;		//TODO: Remove debug message
-	return (true);
+		pollfd	lpfd;
+		lpfd.fd = fd;
+		lpfd.events = POLLIN;
+		lpfd.revents = 0;
+
+		_listeners.push_back(fd);
+		_listenerFds[fd] = &_cfgs[i];
+		_pfds.push_back(lpfd);
+
+		std::cout << "Listening on " << _cfgs[i].host << ":" << _cfgs[i].port << std::endl;		//TODO: Remove debug message
+	}
+	return (!_listeners.empty());
 }
 
 void	Server::runServer()
@@ -49,13 +70,7 @@ void	Server::runServer()
 			perror("poll");
 			break;
 		}
-		if (_pfds[0].revents & POLLIN)
-		{
-			acceptClient();
-			if (--nready == 0)
-				continue;
-		}
-		for (size_t i = 1; i < _pfds.size() && nready > 0;)
+		for (size_t i = 0; i < _pfds.size() && nready > 0;)
 		{
 			if (_pfds[i].revents == 0)
 			{
@@ -63,10 +78,15 @@ void	Server::runServer()
 				continue;
 			}
 			--nready;
-			if (clientEventHandler(i))
+			int	fd = _pfds[i].fd;
+			if (_listenerFds.count(fd))
+			{
+				acceptClient(fd);
 				++i;
-			else
-				continue;					// remove client, next client position into position i
+			}
+			else if (clientEventHandler(i))
+				++i;
+			// else: removeClient shifted the next pfd into position i
 		}
 	}
 }
@@ -90,7 +110,7 @@ bool	Server::clientEventHandler(size_t i)
 	return (true);
 }
 
-void	Server::acceptClient()
+void	Server::acceptClient(int listener_fd)
 {
 	sockaddr_storage	client_addr;
 	socklen_t			client_len;
@@ -100,7 +120,7 @@ void	Server::acceptClient()
 	char				svc[NI_MAXSERV];
 
 	client_len = sizeof(client_addr);
-	client_fd = accept(_listener, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+	client_fd = accept(listener_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
 	if (client_fd < 0)
 		return;
 	if (setNonblock(client_fd) < 0)
@@ -110,6 +130,7 @@ void	Server::acceptClient()
 		return;
 	}
 	_clients[client_fd] = Client();
+	_clients[client_fd].setConfig(_listenerFds[listener_fd]);
 
 	pfd.fd = client_fd;
 	pfd.events = POLLIN;
@@ -172,7 +193,7 @@ int	Server::setNonblock(int fd)
 	return (fcntl(fd, F_SETFL, flags | O_NONBLOCK));
 }
 
-int		Server::createListener(int port)
+int		Server::createListener(const std::string &host, int port)
 {
 	char		portStr[16];
 	int			fd;
@@ -187,7 +208,14 @@ int		Server::createListener(int port)
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
-	err = getaddrinfo(NULL, portStr, &hints, &res);
+	const char	*hostArg;
+	
+	if (host.empty())
+		hostArg = NULL;
+	else
+		hostArg = host.c_str();
+
+	err = getaddrinfo(hostArg, portStr, &hints, &res);
 	if (err != 0)
 	{
 		std::cerr << "getaddrinfo: " << gai_strerror(err) << std::endl;

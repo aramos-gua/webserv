@@ -5,11 +5,11 @@
 
 static const int BUFSIZE = 2048;	//TODO: Change?
 
-Client::Client() : _recv_buf(), _send_buf(), _close(false), _parser()
+Client::Client() : _recv_buf(), _send_buf(), _close(false), _cfg(NULL), _parser()
 {
 }
 
-Client::Client(const Client &copy) : _recv_buf(copy._recv_buf), _send_buf(copy._send_buf), _close(copy._close), _parser(copy._parser)
+Client::Client(const Client &copy) : _recv_buf(copy._recv_buf), _send_buf(copy._send_buf), _close(copy._close), _cfg(copy._cfg), _parser(copy._parser)
 {
 }
 
@@ -24,9 +24,15 @@ Client &Client::operator=(const Client &copy)
 		this->_recv_buf = copy._recv_buf;
 		this->_send_buf = copy._send_buf;
 		this->_close = copy._close;
+		this->_cfg = copy._cfg;
 		this->_parser = copy._parser;
 	}
 	return (*this);
+}
+
+void	Client::setConfig(const ServerConfig *cfg)
+{
+	_cfg = cfg;
 }
 
 bool	Client::writeFlag() const
@@ -72,7 +78,7 @@ void	Client::onRecv(int fd)
 	else if (res == RequestParser::ERROR)
 	{
 		HttpResponse	resp;
-		resp.statusCode = 200;
+		resp.statusCode = 400;
 		resp.version = "HTTP/1.0";
 		resp.description = "Bad Request";
 		resp.headers["Content-Type"] = "text/plain";

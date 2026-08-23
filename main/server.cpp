@@ -1,13 +1,16 @@
 #include <cstdlib>
 #include <iostream>
+#include <vector>
 
 #include "Server.hpp"
 #include "ServerConfig.hpp"
 
 int main()
 {
-	ServerConfig	cfg;
-	Server			server(cfg);
+	std::vector<ServerConfig>	cfgs;
+	cfgs.push_back(ServerConfig());
+
+	Server	server(cfgs);
 
 	if (!server.startServer())
 	{
