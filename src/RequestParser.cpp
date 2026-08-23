@@ -15,6 +15,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <cctype>
+#include <limits>
 
 /* ************************************************************************** */
 /*                              CONSTRUCTOR                                   */
@@ -25,7 +26,8 @@ RequestParser::RequestParser(size_t maxBodySize) :
 	_req(),
 	_error(),
 	_maxBodySize(maxBodySize),
-	_bodyBytesNeeded(0)
+	_bodyBytesNeeded(0),
+	_headerCount(0)
 {}
 
 /* ************************************************************************** */
@@ -37,7 +39,8 @@ RequestParser::RequestParser(const RequestParser &other) :
 	_req(other._req),
 	_error(other._error),
 	_maxBodySize(other._maxBodySize),
-	_bodyBytesNeeded(other._bodyBytesNeeded)
+	_bodyBytesNeeded(other._bodyBytesNeeded),
+	_headerCount(other._headerCount)
 {}
 
 /* ************************************************************************** */
@@ -53,6 +56,7 @@ RequestParser &RequestParser::operator=(const RequestParser &other)
 		_error = other._error;
 		_maxBodySize = other._maxBodySize;
 		_bodyBytesNeeded = other._bodyBytesNeeded;
+		_headerCount = other._headerCount;
 	}
 	return (*this);
 }
@@ -91,7 +95,10 @@ bool	RequestParser::isValidContentLength(const std::string &s, size_t &out)
 	{
 		if (!isdigit(static_cast<unsigned char>(s[i])))
 			return (false);
-		val = val * 10 + (s[i] - '0');
+		size_t	digit = s[i] - '0';
+		if (val > (std::numeric_limits<size_t>::max() - digit) / 10)
+			return (false);
+		val = val * 10 + digit;
 	}
 	out = val;
 	return (true);
@@ -104,6 +111,7 @@ void	RequestParser::reset()
 	_req = HttpRequest();
 	_error.clear();
 	_bodyBytesNeeded = 0;
+	_headerCount = 0;
 }
 
 const	HttpRequest &RequestParser::getRequest() const
@@ -179,15 +187,26 @@ bool	RequestParser::parseHeaders()
 	}
 	size_t	sep = line.find(":");
 	if (sep == std::string::npos)
-		return (true);
+	{
+		_state = PARSE_ERROR;
+		_error = "Malformed header line";
+		return (false);
+	}
+	static const size_t MAX_HEADER_COUNT = 100;
+	if (++_headerCount > MAX_HEADER_COUNT)
+	{
+		_state = PARSE_ERROR;
+		_error = "Too many headers";
+		return (false);
+	}
 	std::string	key = trim(line.substr(0, sep));
 	for (size_t i = 0; i < key.size(); ++i)
 		key[i] = tolower(static_cast<unsigned char>(key[i]));
 	std::string	val = trim(line.substr(sep + 1));
-	if (key == "content-length" && _req.headers.count(key) && _req.headers[key] != val)
+	if (key == "content-length" && _req.headers.count(key))
 	{
 		_state = PARSE_ERROR;
-		_error = "Conflicting Content-Length";
+		_error = "Duplicate Content-Length";
 		return (false);
 	}
 	_req.headers[key] = val;

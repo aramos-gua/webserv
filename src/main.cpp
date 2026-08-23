@@ -16,7 +16,7 @@
 int	main()
 {
 	std::string	rawRequest =
-		"POST /wordpress/wp-admin HTTP/1.1\r\n"
+		"POST /wordpress/wp-admin HTTP/1.0\r\n"
 		"Host: localhost:8080\r\n"
 		"User-Agent: Mozilla\r\n"
 		"Content-Length: 11\r\n"

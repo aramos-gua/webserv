@@ -51,6 +51,7 @@ class	RequestParser
 
 		size_t				_maxBodySize;
 		size_t				_bodyBytesNeeded;
+		size_t				_headerCount;
 
 		bool				parseRequestLine();
 		bool				parseHeaders();
