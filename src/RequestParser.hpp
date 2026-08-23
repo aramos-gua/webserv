@@ -56,7 +56,8 @@ class	RequestParser
 		bool				parseHeaders();
 		bool				parseBody();
 
-		static std::string	trim(const std::string &s);
+		static				std::string	trim(const std::string &s);
+		static bool			isValidContentLength(const std::string &s, size_t &out);
 };
 
 #endif

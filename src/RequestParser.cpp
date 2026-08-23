@@ -14,6 +14,8 @@
 #include <stdexcept>
 #include <sstream>
 #include <cstdlib>
+#include <cctype>
+
 /* ************************************************************************** */
 /*                              CONSTRUCTOR                                   */
 /* ************************************************************************** */
@@ -34,7 +36,7 @@ RequestParser::RequestParser(const RequestParser &other) :
 	_buffer(other._buffer),
 	_req(other._req),
 	_error(other._error),
-	_maxBodySize(other.maxBodySize),
+	_maxBodySize(other._maxBodySize),
 	_bodyBytesNeeded(other._bodyBytesNeeded)
 {}
 
@@ -43,7 +45,7 @@ RequestParser::RequestParser(const RequestParser &other) :
 /* ************************************************************************** */
 RequestParser &RequestParser::operator=(const RequestParser &other)
 {
-	if (this != other)
+	if (this != &other)
 	{
 		_state = other._state;
 		_buffer = other._buffer;
@@ -80,6 +82,21 @@ std::string RequestParser::trim(const std::string& str)
 	return (str.substr(start, end - start));
 }
 
+bool	RequestParser::isValidContentLength(const std::string &s, size_t &out)
+{
+	if (s.empty())
+		return (false);
+	size_t	val = 0;
+	for (size_t i = 0; i < s.size(); ++i)
+	{
+		if (!isdigit(static_cast<unsigned char>(s[i])))
+			return (false);
+		val = val * 10 + (s[i] - '0');
+	}
+	out = val;
+	return (true);
+}
+
 void	RequestParser::reset()
 {
 	_state = PARSE_REQUEST_LINE;
@@ -101,9 +118,17 @@ const std::string &RequestParser::getError() const
 
 bool	RequestParser::parseRequestLine()
 {
+	static const size_t MAX_REQUEST_LINE = 8192;
 	size_t	pos = _buffer.find("\r\n");
 	if (pos == std::string::npos)
+	{
+		if (_buffer.size() > MAX_REQUEST_LINE)
+		{
+			_state = PARSE_ERROR;
+			_error = "Request line too large";
+		}
 		return (false);
+	}
 	std::string	line = _buffer.substr(0, pos);
 	_buffer.erase(0, pos + 2);
 	std::istringstream iss(line);
@@ -119,16 +144,35 @@ bool	RequestParser::parseRequestLine()
 
 bool	RequestParser::parseHeaders()
 {
+	static const size_t	MAX_HEADERS_LINE = 8192;
 	size_t	pos = _buffer.find("\r\n");
 	if (pos == std::string::npos)
+	{
+		if (_buffer.size() > MAX_HEADERS_LINE)
+		{
+			_state = PARSE_ERROR;
+			_error = "Headers too large";
+		}
 		return (false);
-	std::string line =_buffer.substr(0, pos);
+	}
+	std::string line = _buffer.substr(0, pos);
 	_buffer.erase(0, pos + 2);
 	if (line.empty())
 	{
-		if (_req.headers.count("Content-Length"))
+		if (_req.headers.count("content-length"))
 		{
-			_bodyBytesNeeded = std::atoi(_req.headers["Content-Length"].c_str());
+			if (!isValidContentLength(_req.headers["content-length"], _bodyBytesNeeded))
+			{
+				_state = PARSE_ERROR;
+				_error = "Invalid Content-Length";
+				return (false);
+			}
+			if (_bodyBytesNeeded > _maxBodySize)
+			{
+				_state = PARSE_ERROR;
+				_error = "Body too large";
+				return (false);
+			}
 		}
 		_state = PARSE_BODY;
 		return (true);
@@ -137,7 +181,15 @@ bool	RequestParser::parseHeaders()
 	if (sep == std::string::npos)
 		return (true);
 	std::string	key = trim(line.substr(0, sep));
-	std::string	val = trim(line.substr(sep  + 1));
+	for (size_t i = 0; i < key.size(); ++i)
+		key[i] = tolower(static_cast<unsigned char>(key[i]));
+	std::string	val = trim(line.substr(sep + 1));
+	if (key == "content-length" && _req.headers.count(key) && _req.headers[key] != val)
+	{
+		_state = PARSE_ERROR;
+		_error = "Conflicting Content-Length";
+		return (false);
+	}
 	_req.headers[key] = val;
 	return (true);
 }
@@ -152,6 +204,7 @@ bool	RequestParser::parseBody()
 	if (_buffer.size() < _bodyBytesNeeded)
 		return (false);
 	_req.body = _buffer.substr(0, _bodyBytesNeeded);
+	_req.contentLength = _bodyBytesNeeded;
 	_buffer.erase(0, _bodyBytesNeeded);
 	_state = PARSE_DONE;
 	return (true);
@@ -180,40 +233,4 @@ RequestParser::Result RequestParser::feed(const char *data, size_t len)
 	if (_state == PARSE_ERROR)
 		return (ERROR);
 	return (INCOMPLETE);
-}
-/* ************************************************************************** */
-/*                                OTHER FUNCTIONS                             */
-/* ************************************************************************** */
-HttpRequest	RequestParser::parse(const std::string& rawRequest)
-{
-	HttpRequest	req;
-	
-	std::istringstream	stream(rawRequest);
-	std::string			line;
-
-	if (!std::getline(stream, line))
-		throw std::runtime_error("Empty request");
-	std::istringstream	requestLine(line);
-	if(!(requestLine >> req.method >> req.path >> req.version))
-		throw(std::runtime_error("Invalid request line"));
-	while (std::getline(stream, line))
-	{
-		if (line == "\r" || line.empty())
-			break;
-		size_t	separator = line.find(":");
-		if (separator == std::string::npos)
-			continue;
-		std::string	key = trim(line.substr(0, separator));
-		std::string	value = trim(line.substr(separator + 1));
-		req.headers[key] = value;
-	}
-	std::string	body;
-	while (std::getline(stream, line))
-	{
-		body += line;
-		if (!stream.eof())
-			body += "\n";
-	}
-	req.body = body;
-	return req;
 }
