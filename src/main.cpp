@@ -17,42 +17,35 @@ int	main()
 {
 	std::string	rawRequest =
 		"POST /wordpress/wp-admin HTTP/1.1\r\n"
-        "Host: localhost:8080\r\n"
-        "User-Agent: Mozilla\r\n"
-        "Content-Length: 11\r\n"
-        "\r\n"
-        "hello world";
-	    try
-    {
-        HttpRequest req = RequestParser::parse(rawRequest);
+		"Host: localhost:8080\r\n"
+		"User-Agent: Mozilla\r\n"
+		"Content-Length: 11\r\n"
+		"\r\n"
+		"hello world";
 
-        std::cout << "METHOD: " << req.method << std::endl;
-        std::cout << "PATH: " << req.path << std::endl;
-        std::cout << "VERSION: " << req.version << std::endl;
+	RequestParser	parser;
 
-        std::cout << std::endl;
-        std::cout << "HEADERS:" << std::endl;
+	// simulate a fragmented TCP read: feed it in two pieces
+	size_t	mid = rawRequest.size() / 2;
+	parser.feed(rawRequest.c_str(), mid);
+	RequestParser::Result	result = parser.feed(rawRequest.c_str() + mid, rawRequest.size() - mid);
 
-        std::map<std::string, std::string>::iterator it;
+	if (result != RequestParser::COMPLETE)
+	{
+		std::cerr << "Parse failed or incomplete: " << parser.getError() << std::endl;
+		return (1);
+	}
 
-        for (it = req.headers.begin();
-             it != req.headers.end();
-             ++it)
-        {
-            std::cout << it->first
-                      << " => "
-                      << it->second
-                      << std::endl;
-        }
+	const HttpRequest	&req = parser.getRequest();
+	std::cout << "METHOD: " << req.method << std::endl;
+	std::cout << "PATH: " << req.path << std::endl;
+	std::cout << "VERSION: " << req.version << std::endl;
 
-        std::cout << std::endl;
-        std::cout << "BODY:" << std::endl;
-        std::cout << req.body << std::endl;
-    }
-    catch (std::exception& e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
+	std::cout << "\nHEADERS:\n";
+	std::map<std::string, std::string>::const_iterator	it;
+	for (it = req.headers.begin(); it != req.headers.end(); ++it)
+		std::cout << it->first << " => " << it->second << std::endl;
 
-    return 0;
+	std::cout << "\nBODY:\n" << req.body << std::endl;
+	return (0);
 }
