@@ -65,7 +65,7 @@ void	Server::runServer()
 		int	nready = poll(&_pfds[0], static_cast<nfds_t>(_pfds.size()), -1);
 		if (nready < 0)
 		{
-			if (errno == EINTR)												//TODO: not allowed?
+			if (errno == EINTR)
 				continue;
 			perror("poll");
 			break;

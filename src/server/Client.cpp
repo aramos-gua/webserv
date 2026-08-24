@@ -1,6 +1,5 @@
 #include "Client.hpp"
 
-#include <cerrno>
 #include <sys/socket.h>
 
 static const int BUFSIZE = 2048;	//TODO: Change?
@@ -51,13 +50,7 @@ void	Client::onRecv(int fd)
 	ssize_t		bytes;
 
 	bytes = recv(fd, tmp, sizeof(tmp), 0);
-	if (bytes < 0)
-	{
-		if (errno != EAGAIN && errno != EWOULDBLOCK)
-			_close = true;
-		return;
-	}
-	if (bytes == 0)
+	if (bytes <= 0)
 	{
 		_close = true;
 		return;
@@ -127,7 +120,7 @@ void	Client::onSend(int fd)
 	ssize_t	bytes;
 
 	bytes = send(fd, _send_buf.data(), _send_buf.size(), 0);
-	if (bytes < 0 && errno != EAGAIN && errno != EWOULDBLOCK)		//TODO: not allowed?
+	if (bytes < 0)
 		_close = true;
 	else if (bytes > 0)
 		_send_buf.erase(0, static_cast<size_t>(bytes));
