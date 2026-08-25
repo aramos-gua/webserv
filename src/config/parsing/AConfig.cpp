@@ -6,19 +6,22 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 02:54:58 by emflynn           #+#    #+#             */
-/*   Updated: 2026/06/03 12:58:20 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/25 06:39:28 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <set>
 #include <utility>
 
 #include "AConfig.hpp"
 #include "EventsConfig.hpp"
 #include "HttpConfig.hpp"
+#include "HttpMethodHelpers.hpp"
 #include "IpAddressHelpers.hpp"
 #include "IpAddressPortPairHelpers.hpp"
 #include "LimitExceptConfig.hpp"
 #include "LocationConfig.hpp"
+#include "PrintableServerConfig.hpp"
 #include "ServerConfig.hpp"
 #include "ServerNameHelpers.hpp"
 #include "SpecialServerNames.hpp"
@@ -512,26 +515,36 @@ bool AConfig::getWhetherAnyServerConfigsSet(void) const
 	return !serverConfigs.empty();
 }
 
+std::vector<std::string> AConfig::getServerConfigAddressPortPairs(void) const
+{
+	std::vector<std::string> addressPortPairs;
+	for (t_server_configs_by_address_port_pair::const_iterator iterator =
+	         serverConfigs.begin();
+	     iterator != serverConfigs.end(); ++iterator)
+	{
+		addressPortPairs.push_back(iterator->first);
+	}
+	return addressPortPairs;
+}
+
 const ServerConfig &AConfig::getServerConfig(
 	const std::string &addressPortPair, const std::string &serverName) const
 {
-	const std::map<std::string, const ServerConfig *>
-		SERVER_CONFIGS_FOR_SERVER_NAMES = serverConfigs.at(addressPortPair);
+	const t_server_configs_by_server_name &serverConfigsForServerNames =
+		serverConfigs.at(addressPortPair);
 	try
 	{
-		return *SERVER_CONFIGS_FOR_SERVER_NAMES.at(serverName);
+		return *serverConfigsForServerNames.at(serverName);
 	}
 	catch (const std::out_of_range &)
 	{
 		try
 		{
-			return *SERVER_CONFIGS_FOR_SERVER_NAMES.at(
-				SpecialServerNames::DEFAULT);
+			return *serverConfigsForServerNames.at(SpecialServerNames::DEFAULT);
 		}
 		catch (const std::out_of_range &)
 		{
-			return *SERVER_CONFIGS_FOR_SERVER_NAMES.at(
-				SpecialServerNames::FIRST);
+			return *serverConfigsForServerNames.at(SpecialServerNames::FIRST);
 		}
 	}
 }
@@ -779,6 +792,28 @@ void AConfig::throwIfNotSupportedForConfigType(
 
 void AConfig::setUpFrom(const AConfig &other)
 {
+	shouldRunAsDaemon = other.shouldRunAsDaemon;
+	errorLogFilePath = other.errorLogFilePath;
+	workerUser = other.workerUser;
+	workerGroup = other.workerGroup;
+	workerMaxConnections = other.workerMaxConnections;
+	workerProcesses = other.workerProcesses;
+	alias = other.alias;
+	clientMaxBodySize = other.clientMaxBodySize;
+	defaultMimeType = other.defaultMimeType;
+	errorPages = other.errorPages;
+	isInternal = other.isInternal;
+	limitExcept = other.limitExcept;
+	root = other.root;
+	pendingListenAddressPortPairs = other.pendingListenAddressPortPairs;
+	pendingServerNames = other.pendingServerNames;
+	tryFiles = other.tryFiles;
+	mimeTypesForExtensions = other.mimeTypesForExtensions;
+	accessRules = other.accessRules;
+	shouldUseAutoindex = other.shouldUseAutoindex;
+	indexes = other.indexes;
+	accessLogFilePath = other.accessLogFilePath;
+	returnResponse = other.returnResponse;
 	eventsConfig =
 		other.eventsConfig ? new EventsConfig(*other.eventsConfig) : NULL;
 	if (eventsConfig)
@@ -828,13 +863,12 @@ void AConfig::setUpFrom(const AConfig &other)
 		underlyingServerConfigs.push_back(serverConfigCopy);
 		serverConfigPtrMap[*iterator] = serverConfigCopy;
 	}
-	for (std::map<std::string,
-	              std::map<std::string, const ServerConfig *> >::const_iterator
-	         outerIterator = other.serverConfigs.begin();
+	for (t_server_configs_by_address_port_pair::const_iterator outerIterator =
+	         other.serverConfigs.begin();
 	     outerIterator != other.serverConfigs.end(); ++outerIterator)
 	{
-		for (std::map<std::string, const ServerConfig *>::const_iterator
-		         innerIterator = outerIterator->second.begin();
+		for (t_server_configs_by_server_name::const_iterator innerIterator =
+		         outerIterator->second.begin();
 		     innerIterator != outerIterator->second.end(); ++innerIterator)
 		{
 			serverConfigs[outerIterator->first][innerIterator->first] =
@@ -888,13 +922,12 @@ void AConfig::registerServerConfigForAddressPortPair(
 {
 	if (serverConfigs.find(addressPortPair) == serverConfigs.end())
 	{
-		serverConfigs[addressPortPair] =
-			std::map<std::string, const ServerConfig *>();
+		serverConfigs[addressPortPair] = t_server_configs_by_server_name();
 		serverConfigs.at(addressPortPair)[SpecialServerNames::FIRST] =
 			serverConfig;
 	}
-	std::map<std::string, const ServerConfig *>
-		&serverConfigsForAddressPortPair = serverConfigs.at(addressPortPair);
+	t_server_configs_by_server_name &serverConfigsForAddressPortPair =
+		serverConfigs.at(addressPortPair);
 	if (defaultServerSpecification == DEFAULT_SERVER)
 	{
 		if (serverConfigsForAddressPortPair.find(SpecialServerNames::DEFAULT) !=
@@ -945,4 +978,350 @@ AConfig::DirectiveNotSupportedForConfigTypeException::
 	DirectiveNotSupportedForConfigTypeException(void)
 	: std::runtime_error("Directive not supported for this config type")
 {
+}
+
+void AConfig::printTo(std::ostream &stream) const
+{
+	static const std::size_t STARTING_DEPTH = 0;
+	printTo(stream, STARTING_DEPTH);
+}
+
+void AConfig::printTo(std::ostream &stream, std::size_t depth) const
+{
+	static const std::size_t INDENT_SIZE = 4;
+	std::string indent(depth * INDENT_SIZE, ' ');
+
+	if (accessLogFilePath.checkIfSet())
+	{
+		stream << indent << "access_log " << accessLogFilePath.get() << ";"
+			   << std::endl;
+	}
+
+	if (alias.checkIfSet())
+	{
+		stream << indent << "alias " << alias.get() << ";" << std::endl;
+	}
+
+	for (std::multimap<std::string, AccessRule,
+	                   MostSpecificMaskFirstComparator>::const_iterator
+	         iterator = accessRules.begin();
+	     iterator != accessRules.end(); ++iterator)
+	{
+		stream << indent << (iterator->second == ALLOW ? "allow" : "deny")
+			   << " " << iterator->first << ";" << std::endl;
+	}
+
+	if (shouldUseAutoindex.checkIfSet())
+	{
+		stream << indent << "autoindex "
+			   << (shouldUseAutoindex.get() ? "on" : "off") << ";" << std::endl;
+	}
+
+	if (clientMaxBodySize.checkIfSet())
+	{
+		stream << indent << "client_max_body_size " << clientMaxBodySize.get()
+			   << ";" << std::endl;
+	}
+
+	if (shouldRunAsDaemon.checkIfSet())
+	{
+		stream << indent << "daemon "
+			   << (shouldRunAsDaemon.get() ? "on" : "off") << ";" << std::endl;
+	}
+
+	if (defaultMimeType.checkIfSet())
+	{
+		stream << indent << "default_type " << defaultMimeType.get() << ";"
+			   << std::endl;
+	}
+
+	if (errorLogFilePath.checkIfSet())
+	{
+		stream << indent << "error_log " << errorLogFilePath.get() << ";"
+			   << std::endl;
+	}
+
+	for (std::map<HttpStatusCode, ErrorPageValue>::const_iterator iterator =
+	         errorPages.begin();
+	     iterator != errorPages.end(); ++iterator)
+	{
+		stream << indent << "error_page " << static_cast<int>(iterator->first);
+		HttpStatusCode returnCode =
+			iterator->second.getHttpStatusCodeToReturn();
+		if (returnCode != iterator->first)
+		{
+			stream << " =";
+			if (returnCode != NONE)
+			{
+				stream << static_cast<int>(returnCode);
+			}
+		}
+		stream << " " << iterator->second.getUri() << ";" << std::endl;
+	}
+
+	if (indexes.checkIfSet())
+	{
+		stream << indent << "index";
+		const std::vector<std::string> &indexValues = indexes.get();
+		for (std::size_t i = 0; i < indexValues.size(); ++i)
+		{
+			stream << " " << indexValues[i];
+		}
+		stream << ";" << std::endl;
+	}
+
+	if (isInternal.checkIfSet() && isInternal.get())
+	{
+		stream << indent << "internal;" << std::endl;
+	}
+
+	if (returnResponse.checkIfSet())
+	{
+		const ReturnResponseValue &returnValue = returnResponse.get();
+		stream << indent << "return "
+			   << static_cast<int>(returnValue.getHttpStatusCode());
+		if (returnValue.getResponseType() == ReturnResponseValue::BODY_TEXT)
+		{
+			stream << " " << returnValue.getBodyText();
+		}
+		else if (returnValue.getResponseType() ==
+		         ReturnResponseValue::REDIRECT_URL)
+		{
+			stream << " " << returnValue.getRedirectUrl();
+		}
+		stream << ";" << std::endl;
+	}
+
+	if (root.checkIfSet())
+	{
+		stream << indent << "root " << root.get() << ";" << std::endl;
+	}
+
+	if (tryFiles.checkIfSet())
+	{
+		const TryFilesValue &tryFilesValue = tryFiles.get();
+		stream << indent << "try_files";
+		const std::vector<std::string> &filePaths = tryFilesValue.getFiles();
+		for (std::size_t i = 0; i < filePaths.size(); ++i)
+		{
+			stream << " " << filePaths[i];
+		}
+		if (tryFilesValue.getFallbackType() == TryFilesValue::URL)
+		{
+			stream << " " << tryFilesValue.getFallbackUrl();
+		}
+		else
+		{
+			stream << " ="
+				   << static_cast<int>(
+						  tryFilesValue.getFallbackHttpStatusCode());
+		}
+		stream << ";" << std::endl;
+	}
+
+	if (workerUser.checkIfSet())
+	{
+		stream << indent << "user " << workerUser.get();
+		if (workerGroup.checkIfSet())
+		{
+			stream << " " << workerGroup.get();
+		}
+		stream << ";" << std::endl;
+	}
+
+	if (workerMaxConnections.checkIfSet())
+	{
+		stream << indent << "worker_connections " << workerMaxConnections.get()
+			   << ";" << std::endl;
+	}
+
+	if (workerProcesses.checkIfSet())
+	{
+		stream << indent << "worker_processes " << workerProcesses.get() << ";"
+			   << std::endl;
+	}
+
+	if (eventsConfig != NULL)
+	{
+		stream << indent << "events {" << std::endl;
+		eventsConfig->printTo(stream, depth + 1);
+		stream << indent << "}" << std::endl;
+	}
+
+	if (mimeTypesForExtensions.checkIfSet())
+	{
+		const std::map<std::string, std::string> &mimeTypeByExtension =
+			mimeTypesForExtensions.get();
+		std::map<std::string, std::vector<std::string> > extensionsByMimeType;
+		for (std::map<std::string, std::string>::const_iterator iterator =
+		         mimeTypeByExtension.begin();
+		     iterator != mimeTypeByExtension.end(); ++iterator)
+		{
+			extensionsByMimeType[iterator->second].push_back(iterator->first);
+		}
+		stream << indent << "types {" << std::endl;
+		for (std::map<std::string, std::vector<std::string> >::const_iterator
+		         iterator = extensionsByMimeType.begin();
+		     iterator != extensionsByMimeType.end(); ++iterator)
+		{
+			stream << indent << indent << iterator->first;
+			for (std::size_t i = 0; i < iterator->second.size(); ++i)
+			{
+				stream << " " << iterator->second[i];
+			}
+			stream << ";" << std::endl;
+		}
+		stream << indent << "}" << std::endl;
+	}
+
+	if (httpConfig != NULL)
+	{
+		stream << indent << "http {" << std::endl;
+		httpConfig->printTo(stream, depth + 1);
+		stream << indent << "}" << std::endl;
+	}
+
+	std::map<const ServerConfig *, PrintableServerConfig>
+		printableServerConfigs;
+	std::vector<const ServerConfig *> serverConfigsInPrintOrder;
+	for (t_server_configs_by_address_port_pair::const_iterator
+	         addressPortPairIterator = serverConfigs.begin();
+	     addressPortPairIterator != serverConfigs.end();
+	     ++addressPortPairIterator)
+	{
+		const std::string &addressPortPair = addressPortPairIterator->first;
+		const t_server_configs_by_server_name &serverConfigsForAddressPortPair =
+			addressPortPairIterator->second;
+		bool hasExplicitDefaultServer =
+			serverConfigsForAddressPortPair.find(SpecialServerNames::DEFAULT) !=
+			serverConfigsForAddressPortPair.end();
+		for (t_server_configs_by_server_name::const_iterator
+		         serverNameIterator = serverConfigsForAddressPortPair.begin();
+		     serverNameIterator != serverConfigsForAddressPortPair.end();
+		     ++serverNameIterator)
+		{
+			const std::string &serverName = serverNameIterator->first;
+			const ServerConfig *serverConfig = serverNameIterator->second;
+			if (printableServerConfigs.find(serverConfig) ==
+			    printableServerConfigs.end())
+			{
+				serverConfigsInPrintOrder.push_back(serverConfig);
+			}
+			// NOTE: std::map's operator[] method will default-construct a
+			// PrintableServerConfig for this const ServerConfig * if one
+			// isn't already present. Otherwise, it will use the existing one
+			PrintableServerConfig &printableServerConfig =
+				printableServerConfigs[serverConfig];
+			printableServerConfig.addAddressPortPair(addressPortPair);
+			if (serverName == SpecialServerNames::DEFAULT ||
+			    (serverName == SpecialServerNames::FIRST &&
+			     !hasExplicitDefaultServer))
+			{
+				printableServerConfig.setAddressPortPairAsDefaultServer(
+					addressPortPair);
+			}
+			else if (serverName != SpecialServerNames::FIRST &&
+			         serverName != SpecialServerNames::CATCH_ALL)
+			{
+				printableServerConfig.addServerName(serverName);
+			}
+		}
+	}
+
+	for (std::vector<const ServerConfig *>::const_iterator
+	         serverConfigIterator = serverConfigsInPrintOrder.begin();
+	     serverConfigIterator != serverConfigsInPrintOrder.end();
+	     ++serverConfigIterator)
+	{
+		const ServerConfig *serverConfig = *serverConfigIterator;
+		const PrintableServerConfig &printableServerConfig =
+			printableServerConfigs[serverConfig];
+		stream << indent << "server {" << std::endl;
+		const std::map<std::string, bool> &defaultServerFlagsByAddressPortPair =
+			printableServerConfig.getDefaultServerFlagsByAddressPortPair();
+		for (std::map<std::string, bool>::const_iterator flagIterator =
+		         defaultServerFlagsByAddressPortPair.begin();
+		     flagIterator != defaultServerFlagsByAddressPortPair.end();
+		     ++flagIterator)
+		{
+			const std::string &addressPortPair = flagIterator->first;
+			bool isDefaultServer = flagIterator->second;
+			stream << indent << indent << "listen " << addressPortPair;
+			if (isDefaultServer)
+			{
+				stream << " default_server";
+			}
+			stream << ";" << std::endl;
+		}
+		const std::set<std::string> &serverNames =
+			printableServerConfig.getServerNames();
+		if (!serverNames.empty())
+		{
+			stream << indent << indent << "server_name";
+			for (std::set<std::string>::const_iterator nameIterator =
+			         serverNames.begin();
+			     nameIterator != serverNames.end(); ++nameIterator)
+			{
+				stream << " " << *nameIterator;
+			}
+			stream << ";" << std::endl;
+		}
+		serverConfig->printTo(stream, depth + 1);
+		stream << indent << "}" << std::endl;
+	}
+
+	if (limitExcept.checkIfSet())
+	{
+		const LimitExceptValue &limitExceptValue = limitExcept.get();
+		stream << indent << "limit_except";
+		const std::set<HttpMethod> &exemptMethods =
+			limitExceptValue.getExemptMethods();
+		for (std::set<HttpMethod>::const_iterator iterator =
+		         exemptMethods.begin();
+		     iterator != exemptMethods.end(); ++iterator)
+		{
+			stream << " "
+				   << HttpMethodHelpers::getStringForHttpMethod(*iterator);
+		}
+		stream << " {" << std::endl;
+		limitExceptValue.getLimitExceptConfig().printTo(stream, depth + 1);
+		stream << indent << "}" << std::endl;
+	}
+
+	for (std::map<std::string, LocationConfig *>::const_iterator iterator =
+	         exactLocationConfigs.begin();
+	     iterator != exactLocationConfigs.end(); ++iterator)
+	{
+		stream << indent << "location = " << iterator->first << " {"
+			   << std::endl;
+		iterator->second->printTo(stream, depth + 1);
+		stream << indent << "}" << std::endl;
+	}
+
+	for (std::multimap<std::string, LocationConfig *,
+	                   LongestStringFirstComparator>::const_iterator iterator =
+	         prefixLocationConfigs.begin();
+	     iterator != prefixLocationConfigs.end(); ++iterator)
+	{
+		stream << indent << "location " << iterator->first << " {" << std::endl;
+		iterator->second->printTo(stream, depth + 1);
+		stream << indent << "}" << std::endl;
+	}
+
+	for (std::multimap<std::string, LocationConfig *,
+	                   LongestStringFirstComparator>::const_iterator iterator =
+	         suffixLocationConfigs.begin();
+	     iterator != suffixLocationConfigs.end(); ++iterator)
+	{
+		stream << indent << "location ~$ " << iterator->first << " {"
+			   << std::endl;
+		iterator->second->printTo(stream, depth + 1);
+		stream << indent << "}" << std::endl;
+	}
+}
+
+std::ostream &operator<<(std::ostream &stream, const AConfig &config)
+{
+	config.printTo(stream);
+	return stream;
 }

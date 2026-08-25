@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/02 07:53:11 by emflynn           #+#    #+#             */
-/*   Updated: 2026/06/02 09:21:16 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/25 08:41:05 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,6 +49,12 @@ std::vector<std::string> IpAddressPortPairHelpers::
 		return getIpV6CanonicalIpAddressPortPairs(addr6, port);
 	}
 	return getHostnameCanonicalIpAddressPortPairs(address, port);
+}
+
+std::pair<std::string, uint16_t> IpAddressPortPairHelpers::
+	splitCanonicalIpAddressPortPair(const std::string &canonicalAddressPortPair)
+{
+	return parseAddressAndPort(canonicalAddressPortPair);
 }
 
 uint16_t IpAddressPortPairHelpers::parsePort(const std::string &portAsString)

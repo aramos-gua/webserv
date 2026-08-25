@@ -6,14 +6,16 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 02:54:15 by emflynn           #+#    #+#             */
-/*   Updated: 2026/06/03 08:31:50 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/25 06:39:01 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef A_CONFIG_HPP
 #define A_CONFIG_HPP
 
+#include <cstddef>
 #include <map>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -29,6 +31,7 @@
 #include "MostSpecificMaskFirstComparator.hpp"
 #include "OverridableConfigSetting.hpp"
 #include "ReturnResponseValue.hpp"
+#include "SpecialServerNamesLastComparator.hpp"
 #include "TryFilesValue.hpp"
 
 class EventsConfig;
@@ -135,6 +138,7 @@ public:
 	void registerAsServerIn(AConfig &parentConfig);
 
 	bool getWhetherAnyServerConfigsSet(void) const;
+	std::vector<std::string> getServerConfigAddressPortPairs(void) const;
 	const ServerConfig &getServerConfig(const std::string &addressPortPair,
 	                                    const std::string &serverName) const;
 	void setServerConfig(const ServerConfig &serverConfig);
@@ -187,12 +191,24 @@ public:
 		DirectiveNotSupportedForConfigTypeException(void);
 	};
 
+	friend std::ostream &operator<<(std::ostream &stream,
+	                                const AConfig &config);
+
 protected:
 	virtual void throwIfFrozen(void) const;
 
 private:
+	typedef std::map<std::string, const ServerConfig *,
+	                 SpecialServerNamesLastComparator>
+		t_server_configs_by_server_name;
+	typedef std::map<std::string, t_server_configs_by_server_name>
+		t_server_configs_by_address_port_pair;
+
 	void setUpFrom(const AConfig &other);
 	void tearDown(void);
+
+	void printTo(std::ostream &stream) const;
+	void printTo(std::ostream &stream, std::size_t depth) const;
 
 	static void throwIfAlreadySet(bool isAlreadySet);
 	void throwIfNotSupportedForConfigType(const ConfigType *allowedTypes,
@@ -233,8 +249,7 @@ private:
 		pendingListenAddressPortPairs;
 	OverridableConfigSetting<std::vector<std::string> > pendingServerNames;
 	std::vector<const ServerConfig *> underlyingServerConfigs;
-	std::map<std::string, std::map<std::string, const ServerConfig *> >
-		serverConfigs;
+	t_server_configs_by_address_port_pair serverConfigs;
 	OverridableConfigSetting<TryFilesValue> tryFiles;
 	OverridableConfigSetting<std::map<std::string, std::string> >
 		mimeTypesForExtensions;

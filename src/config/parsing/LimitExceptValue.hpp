@@ -10,8 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef LIMIT_EXCEPT_VALUE
-#define LIMIT_EXCEPT_VALUE
+#ifndef LIMIT_EXCEPT_VALUE_HPP
+#define LIMIT_EXCEPT_VALUE_HPP
 
 #include <set>
 

@@ -1,11 +1,10 @@
 {
 	"editor.insertSpaces": false,
 	"editor.detectIndentation": false,
+	"cSpell.language": "en-GB",
 	"cSpell.words": [
 		"binhex",
 		"bugprone",
-		"canonicalise",
-		"canonicalised",
 		"cppcoreguidelines",
 		"fastcgi",
 		"fclean",
@@ -21,6 +20,7 @@
 		"NOLINTBEGIN",
 		"NOLINTEND",
 		"NOLINTNEXTLINE",
+		"nonexistent",
 		"nullglob",
 		"officedocument",
 		"opendocument",

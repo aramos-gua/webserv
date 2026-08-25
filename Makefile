@@ -6,7 +6,7 @@
 #    By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/05/12 03:06:34 by emflynn           #+#    #+#              #
-#    Updated: 2026/06/03 13:58:43 by emflynn          ###   ########.fr        #
+#    Updated: 2026/08/23 10:38:28 by emflynn          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -29,7 +29,7 @@ BIN :=					$(BIN_DIR)/$(subst /,-,$(NAME))
 LIBS_BASE :=			$(addprefix lib,$(addsuffix .a,$(subst /,-,$(MODULES))))
 LIBS :=					$(addprefix $(LIB_DIR)/,$(LIBS_BASE))
 MAIN :=					$(MAIN_DIR)/main.cpp
-TEST :=					$(TEST_DIR)/main.sh
+TEST :=					$(TEST_DIR)/test.sh
 DEPS :=					$(BIN:%=%.d)
 
 CXX :=					c++
@@ -58,8 +58,8 @@ $(LIB_DIR):
 						@git config --local core.hooksPath .githooks
 						@$(MKDIR) $@
 
-$(LIB_DIR)/lib%.a:		| $(LIB_DIR)
-						@echo "Making library for module $(subst -,/,$*)..."
+$(LIB_DIR)/lib%.a:		FORCE | $(LIB_DIR)
+						@echo "Checking if library for module $(subst -,/,$*) needs remaking..."
 						@$(MAKE) -C $(MAKE_DIR)/$(subst -,/,$*)
 
 -include $(DEPS)
@@ -69,10 +69,12 @@ all:					$(BIN)
 clean:
 						@echo "Removing objects and libraries..."
 						@$(RM) -R $(OBJ_DIR) $(LIB_DIR)
+						@echo "Done."
 
 fclean:					clean
 						@echo "Removing binaries..."
 						@$(RM) -R $(BIN_DIR)
+						@echo "Done."
 
 re:						fclean all
 
@@ -124,6 +126,7 @@ valgrind-%:
 						@$(MAKE) -C $(MAKE_DIR)/$(subst -,/,$*) valgrind
 
 .PHONY:					$(NAME) \
+						FORCE \
 						all \
 						clean \
 						fclean \

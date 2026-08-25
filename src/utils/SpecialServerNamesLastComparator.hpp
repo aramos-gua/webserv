@@ -1,25 +1,25 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   LongestStringFirstComparator.hpp                   :+:      :+:    :+:   */
+/*   SpecialServerNamesLastComparator.hpp               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/30 23:29:13 by emflynn           #+#    #+#             */
-/*   Updated: 2026/05/31 00:14:30 by emflynn          ###   ########.fr       */
+/*   Created: 2026/08/23 01:12:04 by emflynn           #+#    #+#             */
+/*   Updated: 2026/08/23 01:12:04 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef LONGEST_STRING_FIRST_COMPARATOR_HPP
-#define LONGEST_STRING_FIRST_COMPARATOR_HPP
+#ifndef SPECIAL_SERVER_NAMES_LAST_COMPARATOR_HPP
+#define SPECIAL_SERVER_NAMES_LAST_COMPARATOR_HPP
 
 #include <string>
 
-struct LongestStringFirstComparator
+struct SpecialServerNamesLastComparator
 {
 public:
-	bool operator()(const std::string &string1,
-	                const std::string &string2) const;
+	bool operator()(const std::string &serverName1,
+	                const std::string &serverName2) const;
 };
 
 #endif

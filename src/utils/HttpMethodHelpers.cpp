@@ -25,11 +25,26 @@ static const std::pair<std::string, HttpMethod> HTTP_METHOD_STRING_PAIRS[] = {
 	std::pair<std::string, HttpMethod>("DELETE", DELETE),
 };
 
+static const std::pair<HttpMethod, std::string> HTTP_STRING_METHOD_PAIRS[] = {
+	std::pair<HttpMethod, std::string>(GET, "GET"),
+	std::pair<HttpMethod, std::string>(HEAD, "HEAD"),
+	std::pair<HttpMethod, std::string>(POST, "POST"),
+	std::pair<HttpMethod, std::string>(PUT, "PUT"),
+	std::pair<HttpMethod, std::string>(PATCH, "PATCH"),
+	std::pair<HttpMethod, std::string>(DELETE, "DELETE"),
+};
+
 const std::map<std::string, HttpMethod> HttpMethodHelpers::
 	HTTP_METHODS_FOR_STRINGS(HTTP_METHOD_STRING_PAIRS,
                              HTTP_METHOD_STRING_PAIRS +
                                  (sizeof(HTTP_METHOD_STRING_PAIRS) /
                                   sizeof(std::pair<std::string, HttpMethod>)));
+
+const std::map<HttpMethod, std::string> HttpMethodHelpers::
+	STRINGS_FOR_HTTP_METHODS(HTTP_STRING_METHOD_PAIRS,
+                             HTTP_STRING_METHOD_PAIRS +
+                                 (sizeof(HTTP_STRING_METHOD_PAIRS) /
+                                  sizeof(std::pair<HttpMethod, std::string>)));
 
 // NOLINTEND(bugprone-throwing-static-initialization)
 
@@ -37,4 +52,9 @@ HttpMethod HttpMethodHelpers::getHttpMethodForString(
 	const std::string &methodString)
 {
 	return HTTP_METHODS_FOR_STRINGS.at(methodString);
+}
+
+std::string HttpMethodHelpers::getStringForHttpMethod(HttpMethod method)
+{
+	return STRINGS_FOR_HTTP_METHODS.at(method);
 }

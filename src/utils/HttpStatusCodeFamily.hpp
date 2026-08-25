@@ -10,8 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef HTTP_STATUS_CODE_FAMILY
-#define HTTP_STATUS_CODE_FAMILY
+#ifndef HTTP_STATUS_CODE_FAMILY_HPP
+#define HTTP_STATUS_CODE_FAMILY_HPP
 
 enum HttpStatusCodeFamily
 {

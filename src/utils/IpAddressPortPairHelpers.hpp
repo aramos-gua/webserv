@@ -26,6 +26,8 @@ public:
 
 	static std::vector<std::string> getCanonicalIpAddressPortPairs(
 		const std::string &rawAddressPortPair);
+	static std::pair<std::string, uint16_t> splitCanonicalIpAddressPortPair(
+		const std::string &canonicalAddressPortPair);
 
 private:
 	static uint16_t parsePort(const std::string &portAsString);

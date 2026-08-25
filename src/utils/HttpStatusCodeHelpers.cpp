@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/24 16:55:42 by emflynn           #+#    #+#             */
-/*   Updated: 2026/06/03 09:29:43 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/23 17:44:28 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,11 @@ bool HttpStatusCodeHelpers::isClientError(HttpStatusCode httpStatusCode)
 bool HttpStatusCodeHelpers::isServerError(HttpStatusCode httpStatusCode)
 {
 	return getStatusCodeFamily(httpStatusCode) == SERVER_ERROR;
+}
+
+bool HttpStatusCodeHelpers::takesNoValue(HttpStatusCode httpStatusCode)
+{
+	return httpStatusCode == NO_CONTENT || httpStatusCode == NOT_MODIFIED;
 }
 
 HttpStatusCodeFamily HttpStatusCodeHelpers::getStatusCodeFamily(

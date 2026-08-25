@@ -10,8 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef RETURN_RESPONSE_VALUE
-#define RETURN_RESPONSE_VALUE
+#ifndef RETURN_RESPONSE_VALUE_HPP
+#define RETURN_RESPONSE_VALUE_HPP
 
 #include <stdexcept>
 #include <string>
@@ -43,11 +43,10 @@ public:
 	const std::string &getBodyText(void) const;
 	const std::string &getRedirectUrl(void) const;
 
-	class HttpStatusCodeResponseTypeConflictException: public std::runtime_error
+	class InvalidReturnResponseException: public std::runtime_error
 	{
 	public:
-		HttpStatusCodeResponseTypeConflictException(
-			const std::string &errorMessage);
+		InvalidReturnResponseException(const std::string &errorMessage);
 	};
 
 private:

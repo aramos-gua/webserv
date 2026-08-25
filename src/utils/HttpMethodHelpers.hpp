@@ -22,9 +22,11 @@ class HttpMethodHelpers
 {
 public:
 	static HttpMethod getHttpMethodForString(const std::string &methodString);
+	static std::string getStringForHttpMethod(HttpMethod method);
 
 private:
 	static const std::map<std::string, HttpMethod> HTTP_METHODS_FOR_STRINGS;
+	static const std::map<HttpMethod, std::string> STRINGS_FOR_HTTP_METHODS;
 };
 
 #endif

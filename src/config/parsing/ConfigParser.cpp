@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/12 03:19:25 by emflynn           #+#    #+#             */
-/*   Updated: 2026/06/03 20:19:04 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/25 07:26:36 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,8 @@
 #include "WordConfigToken.hpp"
 
 ConfigParser::ConfigParser(void)
-	: currentToken(NULL), currentDirectiveLineNumber(0)
+	: currentToken(NULL), currentDirectiveLineNumber(0), activeIncludes(NULL),
+	  ownsActiveIncludes(true)
 {
 	throw std::runtime_error(
 		"ConfigParser default constructor not implemented");
@@ -62,7 +63,8 @@ ConfigParser::ConfigParser(const std::string &configFilePath, AConfig &config,
 }
 
 ConfigParser::ConfigParser(const ConfigParser &other)
-	: currentToken(NULL), currentDirectiveLineNumber(0)
+	: currentToken(NULL), currentDirectiveLineNumber(0), activeIncludes(NULL),
+	  ownsActiveIncludes(true)
 {
 	(void)other;
 	throw std::runtime_error("ConfigParser copy constructor not implemented");
@@ -81,7 +83,7 @@ ConfigParser &ConfigParser::operator=(const ConfigParser &other)
 ConfigParser::~ConfigParser(void)
 {
 	delete currentToken;
-	activeIncludes->erase(getAbsolutePath(currentFilePath));
+	activeIncludes->erase(activeIncludeIterator);
 	if (ownsActiveIncludes)
 	{
 		delete activeIncludes;
@@ -90,10 +92,10 @@ ConfigParser::~ConfigParser(void)
 
 std::string ConfigParser::getAbsolutePath(const std::string &path)
 {
-	char resolved[PATH_MAX];
-	if (realpath(path.c_str(), resolved))
+	char absolutePathBuffer[PATH_MAX];
+	if (realpath(path.c_str(), absolutePathBuffer))
 	{
-		return std::string(resolved);
+		return std::string(absolutePathBuffer);
 	}
 	return path;
 }
@@ -276,7 +278,8 @@ std::vector<ConfigParser::t_word_line_number_pair> ConfigParser::
 
 void ConfigParser::parse(AConfig &config)
 {
-	activeIncludes->insert(getAbsolutePath(currentFilePath));
+	activeIncludeIterator =
+		activeIncludes->insert(getAbsolutePath(currentFilePath)).first;
 	advance();
 	parseDirectives(config);
 	if (currentToken->getType() == AConfigToken::SPECIAL_CHARACTER &&
@@ -721,31 +724,40 @@ void ConfigParser::handleReturn(AConfig &config)
 {
 	std::size_t firstWordLineNumber = currentToken->getLineNumber();
 	std::string firstWord = expectWord();
-	if (StringHelpers::isAllDigits(firstWord))
+	try
 	{
-		HttpStatusCode statusCode =
-			parseHttpStatusCode(firstWord, firstWordLineNumber);
-		if (currentToken->getType() == AConfigToken::WORD)
+		if (StringHelpers::isAllDigits(firstWord))
 		{
-			std::string extraWord = expectWord();
-			expectSemicolon();
-			ReturnResponseValue::ResponseType responseType =
-				HttpStatusCodeHelpers::isRedirection(statusCode)
-					? ReturnResponseValue::REDIRECT_URL
-					: ReturnResponseValue::BODY_TEXT;
-			config.setReturnResponse(
-				ReturnResponseValue(statusCode, responseType, extraWord));
+			HttpStatusCode statusCode =
+				parseHttpStatusCode(firstWord, firstWordLineNumber);
+			if (currentToken->getType() == AConfigToken::WORD)
+			{
+				std::string extraWord = expectWord();
+				expectSemicolon();
+				ReturnResponseValue::ResponseType responseType =
+					HttpStatusCodeHelpers::isRedirection(statusCode)
+						? ReturnResponseValue::REDIRECT_URL
+						: ReturnResponseValue::BODY_TEXT;
+				config.setReturnResponse(
+					ReturnResponseValue(statusCode, responseType, extraWord));
+			}
+			else
+			{
+				expectSemicolon();
+				config.setReturnResponse(ReturnResponseValue(statusCode));
+			}
 		}
 		else
 		{
 			expectSemicolon();
-			config.setReturnResponse(ReturnResponseValue(statusCode));
+			config.setReturnResponse(ReturnResponseValue(firstWord));
 		}
 	}
-	else
+	catch (const ReturnResponseValue::InvalidReturnResponseException &e)
 	{
-		expectSemicolon();
-		config.setReturnResponse(ReturnResponseValue(firstWord));
+		throw std::runtime_error(StringBase()
+		                         << getLocation(currentDirectiveLineNumber)
+		                         << ": " << e.what());
 	}
 }
 
@@ -881,10 +893,6 @@ void ConfigParser::handleUser(AConfig &config)
 	{
 		const std::string &group = wordLineNumberPairs[1].first;
 		config.setWorkerGroup(group);
-	}
-	else
-	{
-		config.setWorkerGroup(user);
 	}
 }
 

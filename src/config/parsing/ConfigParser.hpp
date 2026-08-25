@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/12 03:19:21 by emflynn           #+#    #+#             */
-/*   Updated: 2026/06/03 20:04:58 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/25 06:56:35 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,6 +102,7 @@ private:
 	std::string currentDirective;
 	std::size_t currentDirectiveLineNumber;
 	std::set<std::string> *activeIncludes;
+	std::set<std::string>::iterator activeIncludeIterator;
 	bool ownsActiveIncludes;
 };
 

@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 		MainConfig mainConfig;
 		ConfigParser(argv[1], mainConfig);
 		mainConfig.freeze(argv[1]);
-		// TODO: print config values
+		std::cout << mainConfig;
 	}
 	catch (const std::exception &exception)
 	{
