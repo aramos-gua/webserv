@@ -37,16 +37,14 @@ public:
 	void onSend(int fd);
 
 private:
-	std::string _recv_buf;
 	std::string _send_buf;
 	bool _close;
 	const ServerConfig *_cfg;
-
-	// TODO: Fill with HTTP parsing
-	//  buf -> all bytes received so far - erase what is used
-	// return full response to send, or "" to wait for more data
 	HttpRequestParser _parser;
-	std::string handle(std::string &buf);
+
+	// TODO: Replace with real request handling, driven by _cfg
+	void queuePlainTextResponse(int statusCode, const std::string &description,
+	                            const std::string &body);
 };
 
 #endif

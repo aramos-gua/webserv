@@ -27,6 +27,11 @@ Server::Server(const std::vector<ServerConfig> &cfgs): _cfgs(cfgs)
 
 Server::~Server()
 {
+	for (std::map<int, Client>::iterator iterator = _clients.begin();
+	     iterator != _clients.end(); ++iterator)
+	{
+		close(iterator->first);
+	}
 	for (size_t i = 0; i < _listeners.size(); ++i)
 	{
 		if (_listeners[i] >= 0)
@@ -119,20 +124,22 @@ bool Server::clientEventHandler(size_t i)
 	int fd = _pfds[i].fd;
 	Client &cl = _clients[fd];
 
-	if (rev & POLLIN)
+	if (!cl.closeFlag() && (rev & POLLIN))
 	{
 		cl.onRecv(fd);
 	}
-	if (!cl.closeFlag() && (rev & POLLOUT))
+	if (rev & POLLOUT)
 	{
 		cl.onSend(fd);
 	}
-	if ((rev & (POLLERR | POLLHUP)) || cl.closeFlag())
+	// A client that wants to close may still have a response queued, so hold
+	// the connection open until everything buffered has been flushed.
+	if ((rev & (POLLERR | POLLHUP)) || (cl.closeFlag() && !cl.writeFlag()))
 	{
-		removeClient(fd);
+		removeClient(i);
 		return false;
 	}
-	syncEvents(fd);
+	syncEvents(i, cl);
 	return true;
 }
 
@@ -175,20 +182,14 @@ void Server::acceptClient(int listener_fd)
 	}
 }
 
-void Server::removeClient(int fd)
+void Server::removeClient(size_t i)
 {
+	int fd = _pfds[i].fd;
+
 	std::cout << "Removing fd=" << fd << std::endl;
 	close(fd);
 	_clients.erase(fd);
-
-	for (size_t i = 0; i < _pfds.size(); ++i)
-	{
-		if (_pfds[i].fd == fd)
-		{
-			_pfds.erase(_pfds.begin() + i);
-			return;
-		}
-	}
+	_pfds.erase(_pfds.begin() + i);
 }
 
 /*
@@ -202,19 +203,12 @@ void Server::removeClient(int fd)
  *
  *
  */
-void Server::syncEvents(int fd)
+void Server::syncEvents(size_t i, const Client &client)
 {
-	for (size_t i = 0; i < _pfds.size(); ++i)
+	_pfds[i].events = POLLIN;
+	if (client.writeFlag())
 	{
-		if (_pfds[i].fd == fd)
-		{
-			_pfds[i].events = POLLIN;
-			if (_clients[fd].writeFlag())
-			{
-				_pfds[i].events |= POLLOUT;
-			}
-			return;
-		}
+		_pfds[i].events |= POLLOUT;
 	}
 }
 

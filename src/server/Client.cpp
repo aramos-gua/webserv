@@ -16,13 +16,13 @@
 
 static const int BUFSIZE = 2048; // TODO: Change?
 
-Client::Client(): _recv_buf(), _send_buf(), _close(false), _cfg(NULL), _parser()
+Client::Client(): _send_buf(), _close(false), _cfg(NULL), _parser()
 {
 }
 
 Client::Client(const Client &copy)
-	: _recv_buf(copy._recv_buf), _send_buf(copy._send_buf), _close(copy._close),
-	  _cfg(copy._cfg), _parser(copy._parser)
+	: _send_buf(copy._send_buf), _close(copy._close), _cfg(copy._cfg),
+	  _parser(copy._parser)
 {
 }
 
@@ -34,7 +34,6 @@ Client &Client::operator=(const Client &copy)
 {
 	if (this != &copy)
 	{
-		this->_recv_buf = copy._recv_buf;
 		this->_send_buf = copy._send_buf;
 		this->_close = copy._close;
 		this->_cfg = copy._cfg;
@@ -73,62 +72,28 @@ void Client::onRecv(int fd)
 		_parser.feed(tmp, static_cast<size_t>(bytes));
 	if (res == HttpRequestParser::COMPLETE)
 	{
-		HttpResponse resp;
-		resp.statusCode = 200;
-		resp.version = "HTTP/1.0";
-		resp.description = "OK";
-		resp.headers["Content-Type"] = "text/plain";
-		resp.body = "Webserv is working\n";
-		std::string raw = HttpResponseBuilder::build(resp);
-		_send_buf += raw;
+		queuePlainTextResponse(200, "OK", "Webserv is working\n");
 		_parser.reset();
 	}
 	else if (res == HttpRequestParser::ERROR)
 	{
-		HttpResponse resp;
-		resp.statusCode = 400;
-		resp.version = "HTTP/1.0";
-		resp.description = "Bad Request";
-		resp.headers["Content-Type"] = "text/plain";
-		resp.body = "Malformed request\n";
-		std::string raw = HttpResponseBuilder::build(resp);
-		_send_buf += raw;
+		queuePlainTextResponse(400, "Bad Request", "Malformed request\n");
 		_close = true;
 	}
 }
 
-// TODO: old version
-//
-//  void	Client::onRecv(int fd)
-//  {
-//  	char		tmp[BUFSIZE];
-//  	std::string resp;
-//  	ssize_t		bytes;
-//
-//  	bytes = recv(fd, tmp, sizeof(tmp), 0);
-//  	if (bytes < 0)
-//  	{
-//  		if (errno != EAGAIN && errno != EWOULDBLOCK)
-//  			_close = true;
-//  		return;
-//  	}
-//  	if (bytes == 0)
-//  	{
-//  		_close = true;
-//  		return;
-//  	}
-//  	_recv_buf.append(tmp, bytes);
-//  	resp = handle(_recv_buf);
-//  	if (!resp.empty())
-//  		_send_buf += resp;
-//  }
+void Client::queuePlainTextResponse(int statusCode,
+                                    const std::string &description,
+                                    const std::string &body)
+{
+	HttpResponse response;
 
-// std::string	Client::handle(std::string &buf)
-// {
-// 	(void)buf;
-// 	//TODO: Fill with HTTP parsing
-// 	return ("");
-// }
+	response.statusCode = statusCode;
+	response.description = description;
+	response.headers["Content-Type"] = "text/plain";
+	response.body = body;
+	_send_buf += HttpResponseBuilder::build(response);
+}
 
 void Client::onSend(int fd)
 {

@@ -39,8 +39,8 @@ private:
 
 	bool clientEventHandler(size_t i);
 	void acceptClient(int listener_fd);
-	void removeClient(int fd);
-	void syncEvents(int fd);
+	void removeClient(size_t i);
+	void syncEvents(size_t i, const Client &client);
 
 	static int setNonblock(int fd);
 	static int createListener(const std::string &host, int port);
