@@ -3,15 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponseBuilder.hpp                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aramos <contact@aramos.dev>                +#+  +:+       +#+        */
+/*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/23 21:37:25 by aramos           ###   ########.fr       */
+/*   Updated: 2026/08/25 21:59:22 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef HTTPRESPONSEBUILDER_HPP
-#define HTTPRESPONSEBUILDER_HPP
+#ifndef HTTP_RESPONSE_BUILDER_HPP
+#define HTTP_RESPONSE_BUILDER_HPP
 
 #include "HttpResponse.hpp"
 

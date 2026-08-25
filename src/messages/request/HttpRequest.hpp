@@ -3,30 +3,31 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aramos <contact@aramos.dev>                +#+  +:+       +#+        */
+/*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:26:17 by aramos            #+#    #+#             */
-/*   Updated: 2026/05/30 12:31:56 by aramos           ###   ########.fr       */
+/*   Updated: 2026/08/25 21:58:51 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef HTTPRESPONSE_HPP
-#define HTTPRESPONSE_HPP
+#ifndef HTTP_REQUEST_HPP
+#define HTTP_REQUEST_HPP
 
 #include <map>
 #include <string>
 
-struct HttpResponse
+struct HttpRequest
 {
-	int statusCode;
+	std::string method;
+	std::string path;
 	std::string version;
-	std::string description;
 
 	std::map<std::string, std::string> headers;
 
 	std::string body;
+	size_t contentLength;
 
-	HttpResponse(): statusCode(200), version("HTTP/1.0"), description("OK")
+	HttpRequest(): contentLength(0)
 	{
 	}
 };

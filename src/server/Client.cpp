@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: manwar <manwar@student.42london.com>       +#+  +:+       +#+        */
+/*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:39:35 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/25 21:39:36 by manwar           ###   ########.fr       */
+/*   Updated: 2026/08/25 21:58:07 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,8 +69,9 @@ void Client::onRecv(int fd)
 		_close = true;
 		return;
 	}
-	RequestParser::Result res = _parser.feed(tmp, static_cast<size_t>(bytes));
-	if (res == RequestParser::COMPLETE)
+	HttpRequestParser::Result res =
+		_parser.feed(tmp, static_cast<size_t>(bytes));
+	if (res == HttpRequestParser::COMPLETE)
 	{
 		HttpResponse resp;
 		resp.statusCode = 200;
@@ -82,7 +83,7 @@ void Client::onRecv(int fd)
 		_send_buf += raw;
 		_parser.reset();
 	}
-	else if (res == RequestParser::ERROR)
+	else if (res == HttpRequestParser::ERROR)
 	{
 		HttpResponse resp;
 		resp.statusCode = 400;

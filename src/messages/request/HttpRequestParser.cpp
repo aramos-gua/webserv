@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   RequestParser.cpp                                  :+:      :+:    :+:   */
+/*   HttpRequestParser.cpp                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aramos <contact@aramos.dev>                +#+  +:+       +#+        */
+/*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/05/30 12:57:58 by aramos           ###   ########.fr       */
+/*   Updated: 2026/08/25 21:58:32 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,12 +16,12 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "RequestParser.hpp"
+#include "HttpRequestParser.hpp"
 
 /* ************************************************************************** */
 /*                              CONSTRUCTOR                                   */
 /* ************************************************************************** */
-RequestParser::RequestParser(size_t maxBodySize)
+HttpRequestParser::HttpRequestParser(size_t maxBodySize)
 	: _state(PARSE_REQUEST_LINE), _buffer(), _req(), _error(),
 	  _maxBodySize(maxBodySize), _bodyBytesNeeded(0), _headerCount(0)
 {
@@ -30,7 +30,7 @@ RequestParser::RequestParser(size_t maxBodySize)
 /* ************************************************************************** */
 /*                              COPY CONSTRUCTOR                              */
 /* ************************************************************************** */
-RequestParser::RequestParser(const RequestParser &other)
+HttpRequestParser::HttpRequestParser(const HttpRequestParser &other)
 	: _state(other._state), _buffer(other._buffer), _req(other._req),
 	  _error(other._error), _maxBodySize(other._maxBodySize),
 	  _bodyBytesNeeded(other._bodyBytesNeeded), _headerCount(other._headerCount)
@@ -40,7 +40,7 @@ RequestParser::RequestParser(const RequestParser &other)
 /* ************************************************************************** */
 /*                          COPY ASSIGNMENT OPERATOR                          */
 /* ************************************************************************** */
-RequestParser &RequestParser::operator=(const RequestParser &other)
+HttpRequestParser &HttpRequestParser::operator=(const HttpRequestParser &other)
 {
 	if (this != &other)
 	{
@@ -58,7 +58,7 @@ RequestParser &RequestParser::operator=(const RequestParser &other)
 /* ************************************************************************** */
 /*                               DESTRUCTOR                                   */
 /* ************************************************************************** */
-RequestParser::~RequestParser()
+HttpRequestParser::~HttpRequestParser()
 {
 	return;
 }
@@ -66,7 +66,7 @@ RequestParser::~RequestParser()
 /* ************************************************************************** */
 /*                               MEMBER FUNCTIONS                             */
 /* ************************************************************************** */
-std::string RequestParser::trim(const std::string &str)
+std::string HttpRequestParser::trim(const std::string &str)
 {
 	size_t start;
 	size_t end;
@@ -86,7 +86,7 @@ std::string RequestParser::trim(const std::string &str)
 	return str.substr(start, end - start);
 }
 
-bool RequestParser::isValidContentLength(const std::string &s, size_t &out)
+bool HttpRequestParser::isValidContentLength(const std::string &s, size_t &out)
 {
 	if (s.empty())
 	{
@@ -110,7 +110,7 @@ bool RequestParser::isValidContentLength(const std::string &s, size_t &out)
 	return true;
 }
 
-void RequestParser::reset()
+void HttpRequestParser::reset()
 {
 	_state = PARSE_REQUEST_LINE;
 	_buffer.clear();
@@ -120,17 +120,17 @@ void RequestParser::reset()
 	_headerCount = 0;
 }
 
-const HttpRequest &RequestParser::getRequest() const
+const HttpRequest &HttpRequestParser::getRequest() const
 {
 	return _req;
 }
 
-const std::string &RequestParser::getError() const
+const std::string &HttpRequestParser::getError() const
 {
 	return _error;
 }
 
-bool RequestParser::parseRequestLine()
+bool HttpRequestParser::parseRequestLine()
 {
 	static const size_t MAX_REQUEST_LINE = 8192;
 	size_t pos = _buffer.find("\r\n");
@@ -156,7 +156,7 @@ bool RequestParser::parseRequestLine()
 	return true;
 }
 
-bool RequestParser::parseHeaders()
+bool HttpRequestParser::parseHeaders()
 {
 	static const size_t MAX_HEADERS_LINE = 8192;
 	size_t pos = _buffer.find("\r\n");
@@ -222,7 +222,7 @@ bool RequestParser::parseHeaders()
 	return true;
 }
 
-bool RequestParser::parseBody()
+bool HttpRequestParser::parseBody()
 {
 	if (_bodyBytesNeeded == 0)
 	{
@@ -240,7 +240,7 @@ bool RequestParser::parseBody()
 	return true;
 }
 
-RequestParser::Result RequestParser::feed(const char *data, size_t len)
+HttpRequestParser::Result HttpRequestParser::feed(const char *data, size_t len)
 {
 	if (_state == PARSE_ERROR)
 	{

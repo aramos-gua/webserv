@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: manwar <manwar@student.42london.com>       +#+  +:+       +#+        */
+/*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:40:06 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/25 21:40:07 by manwar           ###   ########.fr       */
+/*   Updated: 2026/08/25 21:58:36 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,11 +15,10 @@
 
 #include <string>
 
+#include "HttpRequestParser.hpp"
+#include "HttpResponse.hpp"
+#include "HttpResponseBuilder.hpp"
 #include "ServerConfig.hpp"
-
-#include "../HttpResponse.hpp"
-#include "../HttpResponseBuilder.hpp"
-#include "../RequestParser.hpp"
 
 class Client
 {
@@ -46,7 +45,7 @@ private:
 	// TODO: Fill with HTTP parsing
 	//  buf -> all bytes received so far - erase what is used
 	// return full response to send, or "" to wait for more data
-	RequestParser _parser;
+	HttpRequestParser _parser;
 	std::string handle(std::string &buf);
 };
 

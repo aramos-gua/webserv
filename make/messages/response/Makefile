@@ -3,16 +3,16 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: manwar <manwar@student.42london.com>       +#+  +:+       +#+         #
+#    By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2026/08/25 22:07:28 by manwar            #+#    #+#              #
-#    Updated: 2026/08/25 22:07:29 by manwar           ###   ########.fr        #
+#    Created: 2026/08/25 22:04:13 by emflynn           #+#    #+#              #
+#    Updated: 2026/08/25 22:04:23 by emflynn          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-NAME :=					server
+NAME :=					messages/response
 
-REPO_DIR :=				../..
+REPO_DIR :=				../../..
 
 SRC_DIR :=				$(REPO_DIR)/src
 OBJ_DIR :=				$(REPO_DIR)/obj
@@ -22,9 +22,7 @@ MAIN_DIR :=				$(REPO_DIR)/main
 TEST_DIR :=				$(REPO_DIR)/test
 MAKE_DIR :=				$(REPO_DIR)/make
 
-SRCS_BASE :=			Server.cpp \
-						Client.cpp \
-						ServerConfig.cpp
+SRCS_BASE :=			HttpResponseBuilder.cpp
 SRCS :=					$(addprefix $(SRC_DIR)/$(NAME)/,$(SRCS_BASE))
 OBJS :=					$(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 BIN :=					$(BIN_DIR)/$(subst /,-,$(NAME))
@@ -33,9 +31,7 @@ MAIN :=					$(MAIN_DIR)/$(NAME)/main.cpp
 TEST :=					$(TEST_DIR)/$(NAME)/test.sh
 DEPS :=					$(OBJS:%.o=%.d) $(BIN:%=%.d)
 
-MODULES :=				messages/request \
-						messages/response \
-						utils
+MODULES :=				utils
 MODULE_LIBS_BASE :=		$(addprefix lib,$(addsuffix .a,$(subst /,-,$(MODULES))))
 MODULE_LIBS :=			$(addprefix $(LIB_DIR)/,$(MODULE_LIBS_BASE))
 

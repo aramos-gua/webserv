@@ -3,16 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aramos <contact@aramos.dev>                +#+  +:+       +#+        */
+/*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:58:38 by aramos            #+#    #+#             */
-/*   Updated: 2026/05/30 13:00:13 by aramos           ###   ########.fr       */
+/*   Updated: 2026/08/25 21:58:28 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <iostream>
 
-#include "RequestParser.hpp"
+#include "HttpRequestParser.hpp"
 
 int main()
 {
@@ -23,15 +23,15 @@ int main()
 							 "\r\n"
 							 "hello world";
 
-	RequestParser parser;
+	HttpRequestParser parser;
 
 	// simulate a fragmented TCP read: feed it in two pieces
 	size_t mid = rawRequest.size() / 2;
 	parser.feed(rawRequest.c_str(), mid);
-	RequestParser::Result result =
+	HttpRequestParser::Result result =
 		parser.feed(rawRequest.c_str() + mid, rawRequest.size() - mid);
 
-	if (result != RequestParser::COMPLETE)
+	if (result != HttpRequestParser::COMPLETE)
 	{
 		std::cerr << "Parse failed or incomplete: " << parser.getError()
 				  << std::endl;

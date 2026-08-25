@@ -1,23 +1,23 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   RequestParser.hpp                                  :+:      :+:    :+:   */
+/*   HttpRequestParser.hpp                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aramos <contact@aramos.dev>                +#+  +:+       +#+        */
+/*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/05/30 12:35:24 by aramos           ###   ########.fr       */
+/*   Updated: 2026/08/25 21:59:05 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef REQUESTPARSER_HPP
-#define REQUESTPARSER_HPP
+#ifndef HTTP_REQUEST_PARSER_HPP
+#define HTTP_REQUEST_PARSER_HPP
 
 #include <string>
 
 #include "HttpRequest.hpp"
 
-class RequestParser
+class HttpRequestParser
 {
 public:
 	enum Result
@@ -27,10 +27,10 @@ public:
 		ERROR
 	};
 
-	RequestParser(size_t maxBodySize = 1024 * 1024);
-	RequestParser(const RequestParser &other);
-	RequestParser &operator=(const RequestParser &other);
-	~RequestParser();
+	HttpRequestParser(size_t maxBodySize = 1024 * 1024);
+	HttpRequestParser(const HttpRequestParser &other);
+	HttpRequestParser &operator=(const HttpRequestParser &other);
+	~HttpRequestParser();
 
 	Result feed(const char *data, size_t len);
 	const HttpRequest &getRequest() const;
