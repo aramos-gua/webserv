@@ -12,17 +12,18 @@
 
 #include "WordConfigToken.hpp"
 
-WordConfigToken::WordConfigToken(void): AConfigToken(WORD)
+WordConfigToken::WordConfigToken(void): AConfigToken(WORD, 0)
 {
 }
 
-WordConfigToken::WordConfigToken(char content)
-	: AConfigToken(WORD), content(std::string(1, content))
+WordConfigToken::WordConfigToken(char content, std::size_t lineNumber)
+	: AConfigToken(WORD, lineNumber), content(std::string(1, content))
 {
 }
 
-WordConfigToken::WordConfigToken(const std::string &content)
-	: AConfigToken(WORD), content(content)
+WordConfigToken::WordConfigToken(const std::string &content,
+                                 std::size_t lineNumber)
+	: AConfigToken(WORD, lineNumber), content(content)
 {
 }
 

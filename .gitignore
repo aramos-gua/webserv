@@ -1,3 +1,11 @@
+# Compiled files
 obj/
 bin/
 lib/
+
+# Logs
+log/
+
+# Test config files
+assets/config/conf.d/
+assets/config/sites-enabled/

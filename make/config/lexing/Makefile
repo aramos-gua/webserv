@@ -6,7 +6,7 @@
 #    By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/05/14 18:00:32 by emflynn           #+#    #+#              #
-#    Updated: 2026/05/14 21:59:20 by emflynn          ###   ########.fr        #
+#    Updated: 2026/08/23 10:31:25 by emflynn          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -31,8 +31,8 @@ SRCS :=					$(addprefix $(SRC_DIR)/$(NAME)/,$(SRCS_BASE))
 OBJS :=					$(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 BIN :=					$(BIN_DIR)/$(subst /,-,$(NAME))
 LIB :=					$(LIB_DIR)/lib$(subst /,-,$(NAME)).a
-MAIN :=					$(MAIN_DIR)/$(NAME).cpp
-TEST :=					$(TEST_DIR)/$(NAME).sh
+MAIN :=					$(MAIN_DIR)/$(NAME)/main.cpp
+TEST :=					$(TEST_DIR)/$(NAME)/test.sh
 DEPS :=					$(OBJS:%.o=%.d) $(BIN:%=%.d)
 
 MODULES :=				utils
@@ -63,15 +63,20 @@ $(BIN_DIR):
 						@$(MKDIR) $@
 
 $(BIN):					$(MAIN) $(LIB) $(MODULE_LIBS) | $(BIN_DIR)
+						@echo "Linking..."
 						@$(CXX) $(CXXFLAGS) $(LDFLAGS) $< -o $@ $(LDLIBS)
+						@echo "Ready."
 
 $(LIB_DIR):
 						@$(MKDIR) $@
 
 $(LIB):					$(OBJS) | $(LIB_DIR)
+						@echo "Rerunning archival..."
 						@$(AR) $(ARFLAGS) $@ $^
+						@echo "Done."
 
-$(LIB_DIR)/lib%.a:		| $(LIB_DIR)
+$(LIB_DIR)/lib%.a:		FORCE | $(LIB_DIR)
+						@echo "Checking if library for module $(subst -,/,$*) needs remaking..."
 						@$(MAKE) -C $(MAKE_DIR)/$(subst -,/,$*)
 
 -include $(DEPS)
@@ -79,13 +84,17 @@ $(LIB_DIR)/lib%.a:		| $(LIB_DIR)
 all:					$(BIN)
 
 clean:
+						@echo "Removing objects and libraries..."
 						@$(RM) -R $(OBJ_DIR)/$(NAME)
 						@$(RM) $(LIB)
 						@$(RMDIR) $(OBJ_DIR) $(LIB_DIR) || true
+						@echo "Done."
 
 fclean:					clean
+						@echo "Removing binaries..."
 						@$(RM) $(BIN)
 						@$(RMDIR) $(BIN_DIR) || true
+						@echo "Done."
 
 re:						fclean all
 
@@ -99,6 +108,7 @@ valgrind:				$(BIN)
 						@valgrind $(TEST)
 
 .PHONY:					$(NAME) \
+						FORCE \
 						all \
 						clean \
 						fclean \

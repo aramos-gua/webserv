@@ -13,6 +13,7 @@
 #ifndef A_CONFIG_TOKEN_HPP
 #define A_CONFIG_TOKEN_HPP
 
+#include <cstddef>
 #include <ostream>
 
 class AConfigToken
@@ -26,19 +27,21 @@ public:
 	};
 
 	AConfigToken(void);
-	AConfigToken(Type type);
+	AConfigToken(Type type, std::size_t lineNumber);
 	AConfigToken(const AConfigToken &other);
 	AConfigToken &operator=(const AConfigToken &other);
 	virtual ~AConfigToken(void) = 0;
 
 	Type getType(void) const;
 	bool getIsDelimited(void) const;
+	std::size_t getLineNumber(void) const;
 
 	void delimit(void);
 
 private:
 	Type type;
 	bool isDelimited;
+	std::size_t lineNumber;
 };
 
 std::ostream &operator<<(std::ostream &stream, const AConfigToken &configToken);

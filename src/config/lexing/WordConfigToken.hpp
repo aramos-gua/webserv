@@ -13,6 +13,7 @@
 #ifndef WORD_CONFIG_TOKEN_HPP
 #define WORD_CONFIG_TOKEN_HPP
 
+#include <cstddef>
 #include <string>
 
 #include "AConfigToken.hpp"
@@ -21,8 +22,8 @@ class WordConfigToken: public AConfigToken
 {
 public:
 	WordConfigToken(void);
-	WordConfigToken(char content);
-	WordConfigToken(const std::string &content);
+	WordConfigToken(char content, std::size_t lineNumber);
+	WordConfigToken(const std::string &content, std::size_t lineNumber);
 	WordConfigToken(const WordConfigToken &other);
 	WordConfigToken &operator=(const WordConfigToken &other);
 	~WordConfigToken(void);

@@ -17,16 +17,19 @@
 #include "StringBase.hpp"
 #include "WordConfigToken.hpp"
 
-AConfigToken::AConfigToken(void): type(TERMINATING), isDelimited(false)
+AConfigToken::AConfigToken(void)
+	: type(TERMINATING), isDelimited(false), lineNumber(0)
 {
 }
 
-AConfigToken::AConfigToken(Type type): type(type), isDelimited(false)
+AConfigToken::AConfigToken(Type type, std::size_t lineNumber)
+	: type(type), isDelimited(false), lineNumber(lineNumber)
 {
 }
 
 AConfigToken::AConfigToken(const AConfigToken &other)
-	: type(other.type), isDelimited(other.isDelimited)
+	: type(other.type), isDelimited(other.isDelimited),
+	  lineNumber(other.lineNumber)
 {
 }
 
@@ -43,6 +46,7 @@ AConfigToken &AConfigToken::operator=(const AConfigToken &other)
 						 << other.type << " to config token of type " << type);
 	}
 	isDelimited = other.isDelimited;
+	lineNumber = other.lineNumber;
 	return *this;
 }
 
@@ -58,6 +62,11 @@ AConfigToken::Type AConfigToken::getType(void) const
 bool AConfigToken::getIsDelimited(void) const
 {
 	return isDelimited;
+}
+
+std::size_t AConfigToken::getLineNumber(void) const
+{
+	return lineNumber;
 }
 
 void AConfigToken::delimit(void)

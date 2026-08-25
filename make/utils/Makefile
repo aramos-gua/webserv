@@ -6,7 +6,7 @@
 #    By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/05/14 18:32:29 by emflynn           #+#    #+#              #
-#    Updated: 2026/05/14 21:32:02 by emflynn          ###   ########.fr        #
+#    Updated: 2026/08/23 09:54:59 by emflynn          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -22,7 +22,18 @@ MAIN_DIR :=				$(REPO_DIR)/main
 TEST_DIR :=				$(REPO_DIR)/test
 MAKE_DIR :=				$(REPO_DIR)/make
 
-SRCS_BASE :=			StringBase.cpp
+SRCS_BASE :=			ConfigTypeHelpers.cpp \
+						HttpMethodHelpers.cpp \
+						HttpStatusCodeHelpers.cpp \
+						IpAddressHelpers.cpp \
+						IpAddressPortPairHelpers.cpp \
+						LongestStringFirstComparator.cpp \
+						MostSpecificMaskFirstComparator.cpp \
+						ServerNameHelpers.cpp \
+						SpecialServerNames.cpp \
+						SpecialServerNamesLastComparator.cpp \
+						StringBase.cpp \
+						StringHelpers.cpp
 SRCS :=					$(addprefix $(SRC_DIR)/$(NAME)/,$(SRCS_BASE))
 OBJS :=					$(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 LIB :=					$(LIB_DIR)/lib$(subst /,-,$(NAME)).a
@@ -52,16 +63,20 @@ $(LIB_DIR):
 						@$(MKDIR) $@
 
 $(LIB):					$(OBJS) | $(LIB_DIR)
+						@echo "Rerunning archival..."
 						@$(AR) $(ARFLAGS) $@ $^
+						@echo "Done."
 
 -include $(DEPS)
 
 all:					$(LIB)
 
 clean:
+						@echo "Removing objects and libraries..."
 						@$(RM) -R $(OBJ_DIR)/$(NAME)
 						@$(RM) $(LIB)
 						@$(RMDIR) $(OBJ_DIR) $(LIB_DIR) || true
+						@echo "Done."
 
 fclean:					clean
 

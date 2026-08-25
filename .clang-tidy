@@ -4,6 +4,7 @@ Checks:
     - -bugprone-assignment-in-if-condition
     - -bugprone-easily-swappable-parameters
     - -bugprone-switch-missing-default-case
+    - -bugprone-unused-raii
     - clang-analyzer-*
     - cppcoreguidelines-*
     - -cppcoreguidelines-avoid-c-arrays
