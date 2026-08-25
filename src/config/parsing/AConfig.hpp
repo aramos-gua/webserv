@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 02:54:15 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/25 06:39:01 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/25 23:44:43 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,7 +92,7 @@ public:
 	const std::string &getDefaultMimeType(void) const;
 	void setDefaultMimeType(const std::string &defaultMimeType);
 
-	const ErrorPageValue &getErrorPageForHttpStatusCode(
+	const ErrorPageValue *getErrorPageForHttpStatusCode(
 		HttpStatusCode httpStatusCode) const;
 	void setErrorPageForHttpStatusCode(HttpStatusCode httpStatusCode,
 	                                   const ErrorPageValue &errorPageValue);
@@ -110,17 +110,17 @@ public:
 		HttpMethod method) const;
 	void setLimitExcept(const LimitExceptValue &limitExcept);
 
-	const LocationConfig &getExactLocationConfigForPath(
+	const LocationConfig *getExactLocationConfigForPath(
 		const std::string &path) const;
 	void setLocationConfigForExactPath(const std::string &exactPath,
 	                                   const LocationConfig &locationConfig);
 
-	const LocationConfig &getPrefixLocationConfigForPath(
+	const LocationConfig *getPrefixLocationConfigForPath(
 		const std::string &path) const;
 	void setLocationConfigForPathPrefix(const std::string &pathPrefix,
 	                                    const LocationConfig &locationConfig);
 
-	const LocationConfig &getSuffixLocationConfigForPath(
+	const LocationConfig *getSuffixLocationConfigForPath(
 		const std::string &path) const;
 	void setLocationConfigForPathSuffix(const std::string &pathSuffix,
 	                                    const LocationConfig &locationConfig);

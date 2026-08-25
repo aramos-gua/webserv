@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 02:54:58 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/25 06:39:28 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/25 23:49:31 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -265,10 +265,16 @@ void AConfig::setDefaultMimeType(const std::string &defaultMimeType)
 	this->defaultMimeType.set(defaultMimeType);
 }
 
-const ErrorPageValue &AConfig::getErrorPageForHttpStatusCode(
+const ErrorPageValue *AConfig::getErrorPageForHttpStatusCode(
 	HttpStatusCode httpStatusCode) const
 {
-	return errorPages.at(httpStatusCode);
+	std::map<HttpStatusCode, ErrorPageValue>::const_iterator iterator =
+		errorPages.find(httpStatusCode);
+	if (iterator == errorPages.end())
+	{
+		return NULL;
+	}
+	return &iterator->second;
 }
 
 void AConfig::setErrorPageForHttpStatusCode(
@@ -354,10 +360,16 @@ void AConfig::setLimitExcept(const LimitExceptValue &limitExcept)
 	this->limitExcept.set(limitExcept);
 }
 
-const LocationConfig &AConfig::getExactLocationConfigForPath(
+const LocationConfig *AConfig::getExactLocationConfigForPath(
 	const std::string &path) const
 {
-	return *exactLocationConfigs.at(path);
+	std::map<std::string, LocationConfig *>::const_iterator iterator =
+		exactLocationConfigs.find(path);
+	if (iterator == exactLocationConfigs.end())
+	{
+		return NULL;
+	}
+	return iterator->second;
 }
 
 void AConfig::setLocationConfigForExactPath(
@@ -372,7 +384,7 @@ void AConfig::setLocationConfigForExactPath(
 	exactLocationConfigs[exactPath]->setParentConfig(this);
 }
 
-const LocationConfig &AConfig::getPrefixLocationConfigForPath(
+const LocationConfig *AConfig::getPrefixLocationConfigForPath(
 	const std::string &path) const
 {
 	for (std::multimap<std::string, LocationConfig *,
@@ -382,11 +394,10 @@ const LocationConfig &AConfig::getPrefixLocationConfigForPath(
 	{
 		if (!path.compare(0, iterator->first.size(), iterator->first))
 		{
-			return *iterator->second;
+			return iterator->second;
 		}
 	}
-	throw std::out_of_range(StringBase()
-	                        << "No prefix match found for path " << path);
+	return NULL;
 }
 
 void AConfig::setLocationConfigForPathPrefix(
@@ -411,7 +422,7 @@ void AConfig::setLocationConfigForPathPrefix(
 		->second->setParentConfig(this);
 }
 
-const LocationConfig &AConfig::getSuffixLocationConfigForPath(
+const LocationConfig *AConfig::getSuffixLocationConfigForPath(
 	const std::string &path) const
 {
 	for (std::multimap<std::string, LocationConfig *,
@@ -419,14 +430,15 @@ const LocationConfig &AConfig::getSuffixLocationConfigForPath(
 	         suffixLocationConfigs.lower_bound(path);
 	     iterator != suffixLocationConfigs.end(); ++iterator)
 	{
-		if (!path.compare(path.size() - iterator->first.size(), path.size(),
-		                  iterator->first))
+		const std::string &pathSuffix = iterator->first;
+		if (pathSuffix.size() <= path.size() &&
+		    !path.compare(path.size() - pathSuffix.size(), pathSuffix.size(),
+		                  pathSuffix))
 		{
-			return *iterator->second;
+			return iterator->second;
 		}
 	}
-	throw std::out_of_range(StringBase()
-	                        << "No suffix match found for path " << path);
+	return NULL;
 }
 
 void AConfig::setLocationConfigForPathSuffix(
@@ -530,23 +542,34 @@ std::vector<std::string> AConfig::getServerConfigAddressPortPairs(void) const
 const ServerConfig &AConfig::getServerConfig(
 	const std::string &addressPortPair, const std::string &serverName) const
 {
+	t_server_configs_by_address_port_pair::const_iterator
+		addressPortPairIterator = serverConfigs.find(addressPortPair);
+	if (addressPortPairIterator == serverConfigs.end())
+	{
+		throw std::out_of_range(StringBase()
+		                        << "Nothing configured to listen on "
+		                        << addressPortPair);
+	}
 	const t_server_configs_by_server_name &serverConfigsForServerNames =
-		serverConfigs.at(addressPortPair);
-	try
+		addressPortPairIterator->second;
+	t_server_configs_by_server_name::const_iterator iterator =
+		serverConfigsForServerNames.find(serverName);
+	if (iterator == serverConfigsForServerNames.end())
 	{
-		return *serverConfigsForServerNames.at(serverName);
+		iterator =
+			serverConfigsForServerNames.find(SpecialServerNames::DEFAULT);
 	}
-	catch (const std::out_of_range &)
+	if (iterator == serverConfigsForServerNames.end())
 	{
-		try
-		{
-			return *serverConfigsForServerNames.at(SpecialServerNames::DEFAULT);
-		}
-		catch (const std::out_of_range &)
-		{
-			return *serverConfigsForServerNames.at(SpecialServerNames::FIRST);
-		}
+		iterator = serverConfigsForServerNames.find(SpecialServerNames::FIRST);
 	}
+	if (iterator == serverConfigsForServerNames.end())
+	{
+		throw std::out_of_range(
+			StringBase() << "No server configured for " << addressPortPair
+						 << " and server name \"" << serverName << "\"");
+	}
+	return *iterator->second;
 }
 
 void AConfig::setServerConfig(const ServerConfig &serverConfig)
@@ -920,14 +943,20 @@ void AConfig::registerServerConfigForAddressPortPair(
 	const std::vector<std::string> &serverNames,
 	const ServerConfig *serverConfig)
 {
-	if (serverConfigs.find(addressPortPair) == serverConfigs.end())
+	t_server_configs_by_address_port_pair::iterator addressPortPairIterator =
+		serverConfigs.find(addressPortPair);
+	if (addressPortPairIterator == serverConfigs.end())
 	{
-		serverConfigs[addressPortPair] = t_server_configs_by_server_name();
-		serverConfigs.at(addressPortPair)[SpecialServerNames::FIRST] =
+		addressPortPairIterator =
+			serverConfigs
+				.insert(std::make_pair(addressPortPair,
+		                               t_server_configs_by_server_name()))
+				.first;
+		addressPortPairIterator->second[SpecialServerNames::FIRST] =
 			serverConfig;
 	}
 	t_server_configs_by_server_name &serverConfigsForAddressPortPair =
-		serverConfigs.at(addressPortPair);
+		addressPortPairIterator->second;
 	if (defaultServerSpecification == DEFAULT_SERVER)
 	{
 		if (serverConfigsForAddressPortPair.find(SpecialServerNames::DEFAULT) !=

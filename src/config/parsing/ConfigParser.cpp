@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/12 03:19:25 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/25 07:26:36 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/25 23:50:41 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -337,17 +337,18 @@ void ConfigParser::parseDirectives(AConfig &config)
 		advance();
 		currentDirective = name;
 		currentDirectiveLineNumber = lineNumber;
-		try
-		{
-			t_handler handler = HANDLERS.at(name);
-			(this->*handler)(config);
-		}
-		catch (const std::out_of_range &)
+		std::map<std::string, t_handler>::const_iterator handlerIterator =
+			HANDLERS.find(name);
+		if (handlerIterator == HANDLERS.end())
 		{
 			throw std::runtime_error(StringBase()
 			                         << getLocation(currentDirectiveLineNumber)
 			                         << ": Unknown directive \""
 			                         << currentDirective << "\"");
+		}
+		try
+		{
+			(this->*handlerIterator->second)(config);
 		}
 		catch (const AConfig::DirectiveAlreadySetException &)
 		{
