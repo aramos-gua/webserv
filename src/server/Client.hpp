@@ -18,7 +18,6 @@
 #include "HttpRequestParser.hpp"
 #include "HttpResponse.hpp"
 #include "HttpResponseBuilder.hpp"
-#include "ServerConfig.hpp"
 
 class Client
 {
@@ -31,7 +30,7 @@ public:
 	bool writeFlag() const;
 	bool closeFlag() const;
 
-	void setConfig(const ServerConfig *cfg);
+	void setAddressPortPair(const std::string &addressPortPair);
 
 	void onRecv(int fd);
 	void onSend(int fd);
@@ -39,10 +38,12 @@ public:
 private:
 	std::string _send_buf;
 	bool _close;
-	const ServerConfig *_cfg;
+	// The listener this client arrived on; the server block itself is resolved
+	// per request, from this pair plus the request's Host header.
+	std::string _addressPortPair;
 	HttpRequestParser _parser;
 
-	// TODO: Replace with real request handling, driven by _cfg
+	// TODO: Replace with real request handling, driven by the resolved config
 	void queuePlainTextResponse(int statusCode, const std::string &description,
 	                            const std::string &body);
 };

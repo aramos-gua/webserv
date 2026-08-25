@@ -23,8 +23,7 @@ TEST_DIR :=				$(REPO_DIR)/test
 MAKE_DIR :=				$(REPO_DIR)/make
 
 SRCS_BASE :=			Server.cpp \
-						Client.cpp \
-						ServerConfig.cpp
+						Client.cpp
 SRCS :=					$(addprefix $(SRC_DIR)/$(NAME)/,$(SRCS_BASE))
 OBJS :=					$(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 BIN :=					$(BIN_DIR)/$(subst /,-,$(NAME))
@@ -33,9 +32,7 @@ MAIN :=					$(MAIN_DIR)/$(NAME)/main.cpp
 TEST :=					$(TEST_DIR)/$(NAME)/test.sh
 DEPS :=					$(OBJS:%.o=%.d) $(BIN:%=%.d)
 
-MODULES :=				messages/request \
-						messages/response \
-						utils
+include					$(MAKE_DIR)/modules.mk
 MODULE_LIBS_BASE :=		$(addprefix lib,$(addsuffix .a,$(subst /,-,$(MODULES))))
 MODULE_LIBS :=			$(addprefix $(LIB_DIR)/,$(MODULE_LIBS_BASE))
 

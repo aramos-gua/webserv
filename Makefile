@@ -22,9 +22,7 @@ MAIN_DIR :=				$(REPO_DIR)/main
 TEST_DIR :=				$(REPO_DIR)/test
 MAKE_DIR :=				$(REPO_DIR)/make
 
-MODULES :=				config/lexing \
-						config/parsing \
-						utils
+include					$(MAKE_DIR)/modules.mk
 BIN :=					$(BIN_DIR)/$(subst /,-,$(NAME))
 LIBS_BASE :=			$(addprefix lib,$(addsuffix .a,$(subst /,-,$(MODULES))))
 LIBS :=					$(addprefix $(LIB_DIR)/,$(LIBS_BASE))

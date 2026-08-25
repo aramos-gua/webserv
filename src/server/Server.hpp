@@ -19,21 +19,21 @@
 #include <vector>
 
 #include "Client.hpp"
-#include "ServerConfig.hpp"
+#include "MainConfig.hpp"
 
 class Server
 {
 public:
-	Server(const std::vector<ServerConfig> &cfgs);
+	Server(const MainConfig &mainConfig);
 	~Server();
 
 	bool startServer();
 	void runServer();
 
 private:
-	std::vector<ServerConfig> _cfgs;
+	const MainConfig &_mainConfig;
 	std::vector<int> _listeners;
-	std::map<int, const ServerConfig *> _listenerFds;
+	std::map<int, std::string> _listenerAddressPortPairs;
 	std::vector<pollfd> _pfds;
 	std::map<int, Client> _clients;
 

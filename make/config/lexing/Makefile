@@ -35,7 +35,7 @@ MAIN :=					$(MAIN_DIR)/$(NAME)/main.cpp
 TEST :=					$(TEST_DIR)/$(NAME)/test.sh
 DEPS :=					$(OBJS:%.o=%.d) $(BIN:%=%.d)
 
-MODULES :=				utils
+include					$(MAKE_DIR)/modules.mk
 MODULE_LIBS_BASE :=		$(addprefix lib,$(addsuffix .a,$(subst /,-,$(MODULES))))
 MODULE_LIBS :=			$(addprefix $(LIB_DIR)/,$(MODULE_LIBS_BASE))
 

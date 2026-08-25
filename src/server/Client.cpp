@@ -16,13 +16,13 @@
 
 static const int BUFSIZE = 2048; // TODO: Change?
 
-Client::Client(): _send_buf(), _close(false), _cfg(NULL), _parser()
+Client::Client(): _send_buf(), _close(false), _addressPortPair(), _parser()
 {
 }
 
 Client::Client(const Client &copy)
-	: _send_buf(copy._send_buf), _close(copy._close), _cfg(copy._cfg),
-	  _parser(copy._parser)
+	: _send_buf(copy._send_buf), _close(copy._close),
+	  _addressPortPair(copy._addressPortPair), _parser(copy._parser)
 {
 }
 
@@ -36,15 +36,15 @@ Client &Client::operator=(const Client &copy)
 	{
 		this->_send_buf = copy._send_buf;
 		this->_close = copy._close;
-		this->_cfg = copy._cfg;
+		this->_addressPortPair = copy._addressPortPair;
 		this->_parser = copy._parser;
 	}
 	return *this;
 }
 
-void Client::setConfig(const ServerConfig *cfg)
+void Client::setAddressPortPair(const std::string &addressPortPair)
 {
-	_cfg = cfg;
+	_addressPortPair = addressPortPair;
 }
 
 bool Client::writeFlag() const
