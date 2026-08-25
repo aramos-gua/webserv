@@ -11,17 +11,17 @@
 /* ************************************************************************** */
 
 #ifndef HTTPRESPONSEBUILDER_HPP
-# define HTTPRESPONSEBUILDER_HPP
+#define HTTPRESPONSEBUILDER_HPP
 
-# include "HttpResponse.hpp"
+#include "HttpResponse.hpp"
 
-class	HttpResponseBuilder
+class HttpResponseBuilder
 {
-	private :
-		static std::string	sanitizeHeaderValue(const std::string &s);
+private:
+	static std::string sanitizeHeaderValue(const std::string &s);
 
-	public :
-		static std::string	build(const HttpResponse &res);
+public:
+	static std::string build(const HttpResponse &res);
 };
 
-# endif
+#endif

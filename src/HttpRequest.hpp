@@ -11,23 +11,25 @@
 /* ************************************************************************** */
 
 #ifndef HTTPREQUEST_HPP
-# define HTTPREQUEST_HPP
+#define HTTPREQUEST_HPP
 
-# include <string>
-# include <map>
+#include <map>
+#include <string>
 
-struct	HttpRequest
+struct HttpRequest
 {
-	std::string	method;
-	std::string	path;
-	std::string	version;
+	std::string method;
+	std::string path;
+	std::string version;
 
-	std::map<std::string, std::string>	headers;
+	std::map<std::string, std::string> headers;
 
-	std::string	body;
-	size_t		contentLength;
+	std::string body;
+	size_t contentLength;
 
-	HttpRequest() : contentLength(0){}
+	HttpRequest(): contentLength(0)
+	{
+	}
 };
 
 #endif

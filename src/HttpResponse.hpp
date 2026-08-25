@@ -11,25 +11,24 @@
 /* ************************************************************************** */
 
 #ifndef HTTPRESPONSE_HPP
-# define HTTPRESPONSE_HPP
+#define HTTPRESPONSE_HPP
 
-# include <string>
-# include <map>
+#include <map>
+#include <string>
 
 struct HttpResponse
 {
-	int			statusCode;
-	std::string	version;
-	std::string	description;
+	int statusCode;
+	std::string version;
+	std::string description;
 
-	std::map<std::string, std::string>	headers;
+	std::map<std::string, std::string> headers;
 
-	std::string	body;
-	HttpResponse() :
-		statusCode(200),
-		version("HTTP/1.0"),
-		description("OK")
-	{}
+	std::string body;
+
+	HttpResponse(): statusCode(200), version("HTTP/1.0"), description("OK")
+	{
+	}
 };
 
 #endif

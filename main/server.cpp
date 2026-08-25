@@ -7,10 +7,10 @@
 
 int main()
 {
-	std::vector<ServerConfig>	cfgs;
+	std::vector<ServerConfig> cfgs;
 	cfgs.push_back(ServerConfig());
 
-	Server	server(cfgs);
+	Server server(cfgs);
 
 	if (!server.startServer())
 	{

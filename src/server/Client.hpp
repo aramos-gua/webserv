@@ -1,38 +1,53 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Client.hpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: manwar <manwar@student.42london.com>       +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/08/25 21:40:06 by manwar            #+#    #+#             */
+/*   Updated: 2026/08/25 21:40:07 by manwar           ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
 #include <string>
+
 #include "ServerConfig.hpp"
-#include "../RequestParser.hpp"
+
 #include "../HttpResponse.hpp"
 #include "../HttpResponseBuilder.hpp"
+#include "../RequestParser.hpp"
 
-class Client {
-	public:
-		Client();
-		Client(const Client& copy);
-		Client &operator=(const Client& copy);
-		~Client();
+class Client
+{
+public:
+	Client();
+	Client(const Client &copy);
+	Client &operator=(const Client &copy);
+	~Client();
 
-		bool	writeFlag()const;
-		bool	closeFlag()const;
+	bool writeFlag() const;
+	bool closeFlag() const;
 
-		void	setConfig(const ServerConfig *cfg);
+	void setConfig(const ServerConfig *cfg);
 
-		void	onRecv(int fd);
-		void	onSend(int fd);
+	void onRecv(int fd);
+	void onSend(int fd);
 
-	private:
-		std::string			_recv_buf;
-		std::string			_send_buf;
-		bool				_close;
-		const ServerConfig	*_cfg;
+private:
+	std::string _recv_buf;
+	std::string _send_buf;
+	bool _close;
+	const ServerConfig *_cfg;
 
-		//TODO: Fill with HTTP parsing
-		// buf -> all bytes received so far - erase what is used
-		//return full response to send, or "" to wait for more data
-		RequestParser	_parser;
-		std::string handle(std::string &buf);
+	// TODO: Fill with HTTP parsing
+	//  buf -> all bytes received so far - erase what is used
+	// return full response to send, or "" to wait for more data
+	RequestParser _parser;
+	std::string handle(std::string &buf);
 };
 
 #endif
