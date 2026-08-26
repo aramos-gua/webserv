@@ -19,6 +19,7 @@ class StringHelpers
 {
 public:
 	static bool isAllDigits(const std::string &str);
+	static std::string toLowercase(const std::string &str);
 };
 
 #endif

@@ -170,8 +170,8 @@ void Server::acceptClient(int listener_fd)
 		return;
 	}
 	_clients[client_fd] = Client();
-	_clients[client_fd].setAddressPortPair(
-		_listenerAddressPortPairs[listener_fd]);
+	_clients[client_fd].setUp(_mainConfig.getHttpConfig(),
+	                          _listenerAddressPortPairs[listener_fd]);
 
 	pfd.fd = client_fd;
 	pfd.events = POLLIN;

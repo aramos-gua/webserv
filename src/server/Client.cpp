@@ -6,23 +6,33 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:39:35 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/25 21:58:07 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/26 02:07:27 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <cstddef>
+#include <map>
+#include <stdexcept>
 #include <sys/socket.h>
 
 #include "Client.hpp"
+#include "HttpConfig.hpp"
+#include "ServerConfig.hpp"
+#include "StringBase.hpp"
+#include "StringHelpers.hpp"
 
 static const int BUFSIZE = 2048; // TODO: Change?
 
-Client::Client(): _send_buf(), _close(false), _addressPortPair(), _parser()
+Client::Client()
+	: _send_buf(), _close(false), _httpConfig(NULL), _addressPortPair(),
+	  _parser()
 {
 }
 
 Client::Client(const Client &copy)
 	: _send_buf(copy._send_buf), _close(copy._close),
-	  _addressPortPair(copy._addressPortPair), _parser(copy._parser)
+	  _httpConfig(copy._httpConfig), _addressPortPair(copy._addressPortPair),
+	  _parser(copy._parser)
 {
 }
 
@@ -36,14 +46,17 @@ Client &Client::operator=(const Client &copy)
 	{
 		this->_send_buf = copy._send_buf;
 		this->_close = copy._close;
+		this->_httpConfig = copy._httpConfig;
 		this->_addressPortPair = copy._addressPortPair;
 		this->_parser = copy._parser;
 	}
 	return *this;
 }
 
-void Client::setAddressPortPair(const std::string &addressPortPair)
+void Client::setUp(const HttpConfig &httpConfig,
+                   const std::string &addressPortPair)
 {
+	_httpConfig = &httpConfig;
 	_addressPortPair = addressPortPair;
 }
 
@@ -72,12 +85,85 @@ void Client::onRecv(int fd)
 		_parser.feed(tmp, static_cast<size_t>(bytes));
 	if (res == HttpRequestParser::COMPLETE)
 	{
-		queuePlainTextResponse(200, "OK", "Webserv is working\n");
+		handleRequest();
 		_parser.reset();
 	}
 	else if (res == HttpRequestParser::ERROR)
 	{
 		queuePlainTextResponse(400, "Bad Request", "Malformed request\n");
+		_close = true;
+	}
+}
+
+std::string Client::getServerNameFromHostHeader(const std::string &hostHeader)
+{
+	std::string serverName = hostHeader;
+	std::size_t portSeparatorIndex;
+
+	if (!serverName.empty() && serverName[0] == '[')
+	{
+		std::size_t closingBracket = serverName.find(']');
+		portSeparatorIndex = closingBracket == std::string::npos
+		                         ? std::string::npos
+		                         : serverName.find(':', closingBracket);
+	}
+	else
+	{
+		portSeparatorIndex = serverName.find(':');
+	}
+	if (portSeparatorIndex != std::string::npos)
+	{
+		serverName.erase(portSeparatorIndex);
+	}
+	return StringHelpers::toLowercase(serverName);
+}
+
+void Client::handleRequest()
+{
+	const HttpRequest &request = _parser.getRequest();
+	std::string hostHeader;
+
+	std::map<std::string, std::string>::const_iterator hostIterator =
+		request.headers.find("host");
+	if (hostIterator != request.headers.end())
+	{
+		hostHeader = hostIterator->second;
+	}
+	const std::string serverName = getServerNameFromHostHeader(hostHeader);
+
+	if (_httpConfig == NULL)
+	{
+		queuePlainTextResponse(500, "Internal Server Error",
+		                       "Client has no configuration\n");
+		_close = true;
+		return;
+	}
+	try
+	{
+		const ServerConfig &serverConfig =
+			_httpConfig->getServerConfig(_addressPortPair, serverName);
+
+		// TODO: Replace with real request handling, driven by serverConfig
+		queuePlainTextResponse(
+			200, "OK",
+			StringBase() << "Webserv is working\n\n"
+						 << "listener:    " << _addressPortPair << "\n"
+						 << "host header: "
+						 << (hostHeader.empty() ? "(none)" : hostHeader) << "\n"
+						 << "server name: "
+						 << (serverName.empty() ? "(none)" : serverName) << "\n"
+						 << "root:        "
+						 << (serverConfig.getWhetherRootSet()
+		                         ? serverConfig.getRoot()
+		                         : "(not set)")
+						 << "\n");
+	}
+	catch (const std::out_of_range &exception)
+	{
+		// The listener was bound from this same set of pairs, so this should be
+		// unreachable; report it rather than dropping the connection silently.
+		queuePlainTextResponse(500, "Internal Server Error",
+		                       StringBase() << exception.what() << "\n");
 		_close = true;
 	}
 }

@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 02:54:58 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/25 23:49:31 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/26 02:20:51 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@
 #include "ServerNameHelpers.hpp"
 #include "SpecialServerNames.hpp"
 #include "StringBase.hpp"
+#include "StringHelpers.hpp"
 
 AConfig::AConfig(void): parentConfig(NULL), eventsConfig(NULL), httpConfig(NULL)
 {
@@ -973,12 +974,14 @@ void AConfig::registerServerConfigForAddressPortPair(
 	         serverNames.begin();
 	     serverNameIterator != serverNames.end(); ++serverNameIterator)
 	{
-		const std::string &serverName =
+		const std::string serverName =
 			ServerNameHelpers::isValidServerName(*serverNameIterator)
-				? *serverNameIterator
+				? StringHelpers::toLowercase(*serverNameIterator)
 				: SpecialServerNames::CATCH_ALL;
-		if (serverConfigsForAddressPortPair.find(serverName) !=
-		    serverConfigsForAddressPortPair.end())
+		t_server_configs_by_server_name::const_iterator existingIterator =
+			serverConfigsForAddressPortPair.find(serverName);
+		if (existingIterator != serverConfigsForAddressPortPair.end() &&
+		    existingIterator->second != serverConfig)
 		{
 			throw std::runtime_error(
 				StringBase()
@@ -986,7 +989,7 @@ void AConfig::registerServerConfigForAddressPortPair(
 				<< addressPortPair << " for server with "
 				<< (serverName == SpecialServerNames::CATCH_ALL
 			            ? "fallback name"
-			            : ("name " +
+			            : ("(lowercase) name " +
 			               (serverName.empty() ? "\"\"" : serverName))));
 		}
 		serverConfigsForAddressPortPair[serverName] = serverConfig;

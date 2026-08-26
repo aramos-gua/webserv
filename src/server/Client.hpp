@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:40:06 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/25 21:58:36 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/26 02:10:31 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,8 @@
 #include "HttpResponse.hpp"
 #include "HttpResponseBuilder.hpp"
 
+class HttpConfig;
+
 class Client
 {
 public:
@@ -30,7 +32,8 @@ public:
 	bool writeFlag() const;
 	bool closeFlag() const;
 
-	void setAddressPortPair(const std::string &addressPortPair);
+	void setUp(const HttpConfig &httpConfig,
+	           const std::string &addressPortPair);
 
 	void onRecv(int fd);
 	void onSend(int fd);
@@ -38,14 +41,17 @@ public:
 private:
 	std::string _send_buf;
 	bool _close;
-	// The listener this client arrived on; the server block itself is resolved
-	// per request, from this pair plus the request's Host header.
+	const HttpConfig *_httpConfig;
 	std::string _addressPortPair;
 	HttpRequestParser _parser;
 
+	void handleRequest();
 	// TODO: Replace with real request handling, driven by the resolved config
 	void queuePlainTextResponse(int statusCode, const std::string &description,
 	                            const std::string &body);
+
+	static std::string getServerNameFromHostHeader(
+		const std::string &hostHeader);
 };
 
 #endif
