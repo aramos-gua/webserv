@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 16:13:26 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:50:14 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 #include "HttpMethodHelpers.hpp"
 #include "HttpRequestParser.hpp"
 #include "HttpStatusCode.hpp"
+#include "HttpVersionHelpers.hpp"
 
 // NOLINTBEGIN(bugprone-throwing-static-initialization)
 
@@ -246,23 +247,19 @@ bool HttpRequestParser::parseRequestLine(void)
 		return false;
 	}
 
-	// Three separate questions, asked in order of how fundamental they are:
-	// is this a method HTTP defines at all, do we speak this protocol version,
-	// and only then, do we act on this method?
 	try
 	{
 		request.method = HttpMethodHelpers::getHttpMethodForString(methodField);
+		request.version =
+			HttpVersionHelpers::getHttpVersionForString(versionField);
 	}
 	catch (const std::out_of_range &)
 	{
-		// Not a method HTTP defines, so the request line itself is bad. RFC
-		// 9110 suggests 501 here as well, but distinguishing an unknown token
-		// from a known method we have not built is more useful to us.
 		state = PARSE_ERROR;
 		errorStatusCode = BAD_REQUEST;
 		return false;
 	}
-	if (versionField != "HTTP/1.0" && versionField != "HTTP/1.1")
+	if (!HttpVersionHelpers::getWhetherVersionIsSupported(request.version))
 	{
 		state = PARSE_ERROR;
 		errorStatusCode = HTTP_VERSION_NOT_SUPPORTED;
@@ -275,7 +272,6 @@ bool HttpRequestParser::parseRequestLine(void)
 		return false;
 	}
 	request.path = targetField;
-	request.version = versionField;
 	state = PARSE_HEADERS;
 	return true;
 }
@@ -309,7 +305,7 @@ bool HttpRequestParser::parseHeaders(void)
 		// deliberately version-specific.
 		std::map<std::string, std::string>::const_iterator hostField =
 			request.headers.find("host");
-		if (request.version == "HTTP/1.1" &&
+		if (request.version == HTTP_1_1 &&
 		    (hostField == request.headers.end() || hostField->second.empty()))
 		{
 			state = PARSE_ERROR;

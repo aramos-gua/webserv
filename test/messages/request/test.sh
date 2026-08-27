@@ -458,9 +458,31 @@ RESULT: INVALID
 STATUS: 505 HTTP Version Not Supported"
 	run_request_test
 
-	# The version token is case-sensitive too.
+	export TEST_NAME="HTTP version that only looks like a supported one"
+	export REQUEST_FILE="version-near-miss.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	# The version token is case-sensitive too, so "http/1.1" is not a version
+	# HTTP defines at all.
 	export TEST_NAME="Lowercase HTTP version"
 	export REQUEST_FILE="lowercase-version.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Recognised but unsupported version: HTTP/2"
+	export REQUEST_FILE="recognised-unsupported-version-http-2.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 505 HTTP Version Not Supported"
+	run_request_test
+
+	export TEST_NAME="Recognised but unsupported version: HTTP/3"
+	export REQUEST_FILE="recognised-unsupported-version-http-3.http"
 	export EXPECTED="\
 RESULT: INVALID
 STATUS: 505 HTTP Version Not Supported"

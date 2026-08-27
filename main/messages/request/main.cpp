@@ -24,6 +24,7 @@
 #include "HttpRequestParser.hpp"
 #include "HttpStatusCode.hpp"
 #include "HttpStatusCodeHelpers.hpp"
+#include "HttpVersionHelpers.hpp"
 
 // Feeding the whole request in one go and feeding it a byte at a time have to
 // produce identical results, so the chunk size is a command line option and the
@@ -65,7 +66,9 @@ static void printRequest(const HttpRequest &request)
 			  << HttpMethodHelpers::getStringForHttpMethod(request.method)
 			  << std::endl;
 	std::cout << "PATH: " << request.path << std::endl;
-	std::cout << "VERSION: " << request.version << std::endl;
+	std::cout << "VERSION: "
+			  << HttpVersionHelpers::getStringForHttpVersion(request.version)
+			  << std::endl;
 	std::cout << "HEADERS:" << std::endl;
 	for (std::map<std::string, std::string>::const_iterator headerIterator =
 	         request.headers.begin();

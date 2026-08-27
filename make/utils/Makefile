@@ -25,6 +25,7 @@ MAKE_DIR :=				$(REPO_DIR)/make
 SRCS_BASE :=			ConfigTypeHelpers.cpp \
 						HttpMethodHelpers.cpp \
 						HttpStatusCodeHelpers.cpp \
+						HttpVersionHelpers.cpp \
 						IpAddressHelpers.cpp \
 						IpAddressPortPairHelpers.cpp \
 						LogLevelHelpers.cpp \

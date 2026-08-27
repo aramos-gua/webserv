@@ -1,39 +1,26 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HttpRequest.hpp                                    :+:      :+:    :+:   */
+/*   HttpVersion.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/30 12:26:17 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 16:42:16 by emflynn          ###   ########.fr       */
+/*   Created: 2026/05/24 17:36:38 by emflynn           #+#    #+#             */
+/*   Updated: 2026/08/27 16:47:53 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef HTTP_REQUEST_HPP
-#define HTTP_REQUEST_HPP
+#ifndef HTTP_VERSION_HPP
+#define HTTP_VERSION_HPP
 
-#include <cstddef>
-#include <map>
-#include <string>
-
-#include "HttpMethod.hpp"
-#include "HttpVersion.hpp"
-
-struct HttpRequest
+enum HttpVersion
 {
-	HttpMethod method;
-	std::string path;
-	HttpVersion version;
+	NO_VERSION = 0,
 
-	std::map<std::string, std::string> headers;
-
-	std::string body;
-	std::size_t contentLength;
-
-	HttpRequest(void): method(NO_METHOD), version(NO_VERSION), contentLength(0)
-	{
-	}
+	HTTP_1_0,
+	HTTP_1_1,
+	HTTP_2,
+	HTTP_3
 };
 
 #endif
