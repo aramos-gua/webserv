@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/03 11:12:27 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/27 19:13:49 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 21:23:18 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@ public:
 	static std::string toLowercase(const std::string &str);
 	static std::string trim(const std::string &str);
 	static std::vector<std::string> splitOnCommas(const std::string &str);
+	static std::string removeLineBreaks(const std::string &str);
 };
 
 #endif

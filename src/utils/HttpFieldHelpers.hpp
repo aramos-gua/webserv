@@ -1,26 +1,24 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HttpResponseBuilder.hpp                            :+:      :+:    :+:   */
+/*   HttpFieldHelpers.hpp                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 19:51:09 by emflynn          ###   ########.fr       */
+/*   Created: 2026/08/27 21:40:00 by emflynn           #+#    #+#             */
+/*   Updated: 2026/08/27 21:22:42 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef HTTP_RESPONSE_BUILDER_HPP
-#define HTTP_RESPONSE_BUILDER_HPP
+#ifndef HTTP_FIELD_HELPERS_HPP
+#define HTTP_FIELD_HELPERS_HPP
 
-#include "HttpResponse.hpp"
+#include <string>
 
-class HttpResponseBuilder
+class HttpFieldHelpers
 {
 public:
-	static std::string build(const HttpResponse &res);
-
-private:
+	static bool getWhetherFieldNameIsValid(const std::string &fieldName);
 };
 
 #endif

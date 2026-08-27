@@ -23,6 +23,7 @@ TEST_DIR :=				$(REPO_DIR)/test
 MAKE_DIR :=				$(REPO_DIR)/make
 
 SRCS_BASE :=			ConfigTypeHelpers.cpp \
+						HttpFieldHelpers.cpp \
 						HttpMethodHelpers.cpp \
 						HttpStatusCodeHelpers.cpp \
 						HttpVersionHelpers.cpp \

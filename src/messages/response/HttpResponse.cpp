@@ -10,6 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
+#include "HttpFieldHelpers.hpp"
 #include "HttpResponse.hpp"
 
 HttpResponse::HttpResponse(void)
@@ -84,9 +85,14 @@ void HttpResponse::setStatusCode(HttpStatusCode statusCode)
 	this->statusCode = statusCode;
 }
 
-void HttpResponse::setHeader(const std::string &name, const std::string &value)
+bool HttpResponse::setHeader(const std::string &name, const std::string &value)
 {
+	if (!HttpFieldHelpers::getWhetherFieldNameIsValid(name))
+	{
+		return false;
+	}
 	headers[name] = value;
+	return true;
 }
 
 void HttpResponse::setBody(const std::string &body)

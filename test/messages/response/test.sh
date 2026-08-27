@@ -370,6 +370,25 @@ FRAMING: OK"
 
 	echo
 	echo "*** HEADER SANITISING TESTS ***"
+	# Values are stripped of CR and LF; names are refused outright. A CRLF in a
+	# name would append header lines of the setter's choosing, which matters
+	# most once CGI scripts start supplying header names of their own.
+	export TEST_NAME="A header name that is not a valid field name is refused"
+	export OPTIONS="$RESPONSES_DIR/invalid-header-name.response"
+	export EXPECTED="\
+An error occurred during execution:
+Invalid header field name \"Has Space\".
+Unable to continue."
+	run_usage_test
+
+	export TEST_NAME="A header name carrying a CRLF is refused"
+	export OPTIONS="$RESPONSES_DIR/header-name-with-crlf.response"
+	export EXPECTED="\
+An error occurred during execution:
+Invalid header field name \"X-Ok\\r\\nInjected\".
+Unable to continue."
+	run_usage_test
+
 	# A CR or LF in a header value would otherwise end the header line early and
 	# let the value inject headers of its own, which is response splitting.
 	export TEST_NAME="CR and LF are stripped from a header value"

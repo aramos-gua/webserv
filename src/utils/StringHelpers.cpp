@@ -80,3 +80,17 @@ std::vector<std::string> StringHelpers::splitOnCommas(const std::string &str)
 		start = separator + 1;
 	}
 }
+
+std::string StringHelpers::removeLineBreaks(const std::string &str)
+{
+	std::string strWithoutLineBreaks;
+
+	for (std::size_t i = 0; i < str.size(); ++i)
+	{
+		if (str[i] != '\r' && str[i] != '\n')
+		{
+			strWithoutLineBreaks += str[i];
+		}
+	}
+	return strWithoutLineBreaks;
+}

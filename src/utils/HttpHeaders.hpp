@@ -1,26 +1,21 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HttpResponseBuilder.hpp                            :+:      :+:    :+:   */
+/*   HttpHeaders.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 19:51:09 by emflynn          ###   ########.fr       */
+/*   Created: 2026/08/27 21:40:00 by emflynn           #+#    #+#             */
+/*   Updated: 2026/08/27 21:12:28 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef HTTP_RESPONSE_BUILDER_HPP
-#define HTTP_RESPONSE_BUILDER_HPP
+#ifndef HTTP_HEADERS_HPP
+#define HTTP_HEADERS_HPP
 
-#include "HttpResponse.hpp"
+#include <map>
+#include <string>
 
-class HttpResponseBuilder
-{
-public:
-	static std::string build(const HttpResponse &res);
-
-private:
-};
+typedef std::map<std::string, std::string> t_http_headers;
 
 #endif

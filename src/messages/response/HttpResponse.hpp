@@ -14,16 +14,16 @@
 #define HTTP_RESPONSE_HPP
 
 #include <cstddef>
-#include <map>
 #include <string>
 
+#include "HttpHeaders.hpp"
 #include "HttpStatusCode.hpp"
 #include "HttpVersion.hpp"
 
 class HttpResponse
 {
 public:
-	typedef std::map<std::string, std::string> t_headers;
+	typedef t_http_headers t_headers;
 
 	HttpResponse(void);
 	HttpResponse(const HttpResponse &other);
@@ -42,7 +42,10 @@ public:
 
 	void setVersion(HttpVersion version);
 	void setStatusCode(HttpStatusCode statusCode);
-	void setHeader(const std::string &name, const std::string &value);
+	// Refuses a name that is not a valid field name, rather than storing it
+	// for the builder to write out. A name carrying a CRLF would otherwise
+	// append header lines of the caller's choosing to the response.
+	bool setHeader(const std::string &name, const std::string &value);
 
 	// The two bodies are set through separate calls that each clear the other,
 	// so a response cannot end up claiming an external length while also

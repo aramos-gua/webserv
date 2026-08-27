@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "HttpFieldHelpers.hpp"
 #include "HttpMethodHelpers.hpp"
 #include "HttpRequestParser.hpp"
 #include "HttpStatusCode.hpp"
@@ -80,26 +81,6 @@ std::size_t HttpRequestParser::getMinimumConfirmedLineLength(
 		return str.size() - 1;
 	}
 	return str.size();
-}
-
-bool HttpRequestParser::isValidFieldName(const std::string &fieldName)
-{
-	static const std::string TOKEN_SYMBOLS = "!#$%&'*+-.^_`|~";
-
-	if (fieldName.empty())
-	{
-		return false;
-	}
-	for (std::size_t i = 0; i < fieldName.size(); ++i)
-	{
-		unsigned char character = static_cast<unsigned char>(fieldName[i]);
-		if (!isalnum(character) && TOKEN_SYMBOLS.find(static_cast<char>(
-									   character)) == std::string::npos)
-		{
-			return false;
-		}
-	}
-	return true;
 }
 
 bool HttpRequestParser::isValidOriginFormTarget(const std::string &target)
@@ -328,7 +309,7 @@ bool HttpRequestParser::parseHeaders(void)
 	// header begins, which is the basis of request smuggling — so the name is
 	// validated exactly as it arrived.
 	std::string key = line.substr(0, sep);
-	if (!isValidFieldName(key))
+	if (!HttpFieldHelpers::getWhetherFieldNameIsValid(key))
 	{
 		return fail(BAD_REQUEST);
 	}
@@ -480,7 +461,8 @@ bool HttpRequestParser::parseTrailers(void)
 	// point where the headers have already been acted on, so honouring one
 	// would let a sender revise decisions that have already been made.
 	std::size_t sep = line.find(":");
-	if (sep == std::string::npos || !isValidFieldName(line.substr(0, sep)))
+	if (sep == std::string::npos ||
+	    !HttpFieldHelpers::getWhetherFieldNameIsValid(line.substr(0, sep)))
 	{
 		return fail(BAD_REQUEST);
 	}

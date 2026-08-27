@@ -13,17 +13,17 @@
 #ifndef HTTP_REQUEST_HPP
 #define HTTP_REQUEST_HPP
 
-#include <map>
 #include <set>
 #include <string>
 
+#include "HttpHeaders.hpp"
 #include "HttpMethod.hpp"
 #include "HttpVersion.hpp"
 
 class HttpRequest
 {
 public:
-	typedef std::map<std::string, std::string> t_headers;
+	typedef t_http_headers t_headers;
 
 	HttpRequest(void);
 	HttpRequest(const HttpRequest &other);

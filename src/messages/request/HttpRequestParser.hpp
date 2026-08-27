@@ -88,7 +88,6 @@ private:
 
 	static std::size_t getMinimumConfirmedLineLength(const std::string &str,
 	                                                 std::size_t terminatorPos);
-	static bool isValidFieldName(const std::string &fieldName);
 	static bool isValidOriginFormTarget(const std::string &target);
 	static bool isValidContentLength(const std::string &str, std::size_t &out);
 	static bool isValidChunkSize(const std::string &str, std::size_t &out);

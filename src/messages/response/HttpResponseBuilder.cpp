@@ -36,19 +36,6 @@ static std::string getReasonPhrase(HttpStatusCode statusCode)
 	}
 }
 
-std::string HttpResponseBuilder::sanitizeHeaderValue(const std::string &str)
-{
-	std::string out;
-	for (std::size_t i = 0; i < str.size(); ++i)
-	{
-		if (str[i] != '\r' && str[i] != '\n')
-		{
-			out += str[i];
-		}
-	}
-	return out;
-}
-
 // NOTE: fixed English abbreviations according to RFC 9110, not locale-dependent
 static const char *const DAY_NAMES[] = {"Sun", "Mon", "Tue", "Wed",
                                         "Thu", "Fri", "Sat"};
@@ -116,7 +103,8 @@ std::string HttpResponseBuilder::build(const HttpResponse &res)
 		}
 		callerSuppliedNames.insert(lowercaseName);
 		out << headerIterator->first << ": "
-			<< sanitizeHeaderValue(headerIterator->second) << "\r\n";
+			<< StringHelpers::removeLineBreaks(headerIterator->second)
+			<< "\r\n";
 	}
 	// Defaults, each supplied only when the caller has not spoken for itself.
 	if (callerSuppliedNames.find("connection") == callerSuppliedNames.end())

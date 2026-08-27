@@ -130,7 +130,10 @@ static void applyHeaderDirective(HttpResponse &response,
 	{
 		headerValue.erase(0, 1);
 	}
-	response.setHeader(name, unescape(headerValue));
+	if (!response.setHeader(name, unescape(headerValue)))
+	{
+		throw std::runtime_error("Invalid header field name \"" + name + "\"");
+	}
 }
 
 static void applyStatusDirective(HttpResponse &response,
