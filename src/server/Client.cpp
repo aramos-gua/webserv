@@ -87,7 +87,7 @@ void Client::onRecv(int fileDescriptor)
 		handleRequest();
 		requestParser.resetInPreparationForNextRequest();
 	}
-	else if (result == HttpRequestParser::ERROR)
+	else if (result == HttpRequestParser::INVALID)
 	{
 		queuePlainTextResponse(requestParser.getErrorStatusCode(),
 		                       "Malformed request\n");

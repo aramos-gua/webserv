@@ -6,10 +6,11 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/24 17:45:30 by emflynn           #+#    #+#             */
-/*   Updated: 2026/06/01 05:04:04 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:37:19 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <set>
 #include <stdexcept>
 #include <utility>
 
@@ -25,6 +26,9 @@ static const std::pair<std::string, HttpMethod> HTTP_METHOD_STRING_PAIRS[] = {
 	std::pair<std::string, HttpMethod>("PUT", PUT),
 	std::pair<std::string, HttpMethod>("PATCH", PATCH),
 	std::pair<std::string, HttpMethod>("DELETE", DELETE),
+	std::pair<std::string, HttpMethod>("CONNECT", CONNECT),
+	std::pair<std::string, HttpMethod>("OPTIONS", OPTIONS),
+	std::pair<std::string, HttpMethod>("TRACE", TRACE),
 };
 
 static const std::pair<HttpMethod, std::string> HTTP_STRING_METHOD_PAIRS[] = {
@@ -34,6 +38,9 @@ static const std::pair<HttpMethod, std::string> HTTP_STRING_METHOD_PAIRS[] = {
 	std::pair<HttpMethod, std::string>(PUT, "PUT"),
 	std::pair<HttpMethod, std::string>(PATCH, "PATCH"),
 	std::pair<HttpMethod, std::string>(DELETE, "DELETE"),
+	std::pair<HttpMethod, std::string>(CONNECT, "CONNECT"),
+	std::pair<HttpMethod, std::string>(OPTIONS, "OPTIONS"),
+	std::pair<HttpMethod, std::string>(TRACE, "TRACE"),
 };
 
 const std::map<std::string, HttpMethod> HttpMethodHelpers::
@@ -47,6 +54,17 @@ const std::map<HttpMethod, std::string> HttpMethodHelpers::
                              HTTP_STRING_METHOD_PAIRS +
                                  (sizeof(HTTP_STRING_METHOD_PAIRS) /
                                   sizeof(std::pair<HttpMethod, std::string>)));
+
+static const HttpMethod IMPLEMENTED_HTTP_METHOD_ARRAY[] = {
+	GET,
+	POST,
+	DELETE,
+};
+
+const std::set<HttpMethod> HttpMethodHelpers::IMPLEMENTED_HTTP_METHODS(
+	IMPLEMENTED_HTTP_METHOD_ARRAY,
+	IMPLEMENTED_HTTP_METHOD_ARRAY +
+		(sizeof(IMPLEMENTED_HTTP_METHOD_ARRAY) / sizeof(HttpMethod)));
 
 // NOLINTEND(bugprone-throwing-static-initialization)
 
@@ -73,4 +91,10 @@ std::string HttpMethodHelpers::getStringForHttpMethod(HttpMethod method)
 		                                     << static_cast<int>(method));
 	}
 	return iterator->second;
+}
+
+bool HttpMethodHelpers::getWhetherMethodIsImplemented(HttpMethod method)
+{
+	return IMPLEMENTED_HTTP_METHODS.find(method) !=
+	       IMPLEMENTED_HTTP_METHODS.end();
 }

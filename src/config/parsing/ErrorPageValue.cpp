@@ -6,13 +6,13 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 03:54:31 by emflynn           #+#    #+#             */
-/*   Updated: 2026/05/24 08:30:09 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:13:26 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ErrorPageValue.hpp"
 
-ErrorPageValue::ErrorPageValue(void): httpStatusCodeToReturn(NONE)
+ErrorPageValue::ErrorPageValue(void): httpStatusCodeToReturn(NO_STATUS_CODE)
 {
 }
 

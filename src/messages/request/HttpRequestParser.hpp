@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 15:46:35 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:25:52 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ public:
 	{
 		INCOMPLETE,
 		COMPLETE,
-		ERROR
+		INVALID
 	};
 
 	HttpRequestParser(std::size_t maxBodySize = DEFAULT_MAX_BODY_SIZE);

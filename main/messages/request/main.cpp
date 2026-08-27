@@ -20,6 +20,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "HttpMethodHelpers.hpp"
 #include "HttpRequestParser.hpp"
 #include "HttpStatusCode.hpp"
 #include "HttpStatusCodeHelpers.hpp"
@@ -60,7 +61,9 @@ static std::size_t parseSize(const std::string &option,
 
 static void printRequest(const HttpRequest &request)
 {
-	std::cout << "METHOD: " << request.method << std::endl;
+	std::cout << "METHOD: "
+			  << HttpMethodHelpers::getStringForHttpMethod(request.method)
+			  << std::endl;
 	std::cout << "PATH: " << request.path << std::endl;
 	std::cout << "VERSION: " << request.version << std::endl;
 	std::cout << "HEADERS:" << std::endl;
@@ -154,10 +157,10 @@ int main(int argc, char **argv)
 			printRequest(parser.getRequest());
 			printUnparsedByteCount(parser);
 		}
-		else if (result == HttpRequestParser::ERROR)
+		else if (result == HttpRequestParser::INVALID)
 		{
 			HttpStatusCode statusCode = parser.getErrorStatusCode();
-			std::cout << "RESULT: ERROR" << std::endl;
+			std::cout << "RESULT: INVALID" << std::endl;
 			std::cout << "STATUS: " << static_cast<int>(statusCode) << " "
 					  << HttpStatusCodeHelpers::getReasonPhraseForStatusCode(
 							 statusCode)

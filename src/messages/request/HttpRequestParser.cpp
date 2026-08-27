@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 15:46:35 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:13:26 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "HttpMethodHelpers.hpp"
 #include "HttpRequestParser.hpp"
 #include "HttpStatusCode.hpp"
 
@@ -42,7 +43,7 @@ static const std::set<std::string> SINGLE_OCCURRENCE_FIELD_NAMES(
 /*                              CONSTRUCTOR                                   */
 /* ************************************************************************** */
 HttpRequestParser::HttpRequestParser(std::size_t maxBodySize)
-	: state(PARSE_REQUEST_LINE), errorStatusCode(NONE),
+	: state(PARSE_REQUEST_LINE), errorStatusCode(NO_STATUS_CODE),
 	  maxBodySize(maxBodySize), bodyBytesNeeded(0), headerCount(0)
 {
 }
@@ -176,7 +177,7 @@ void HttpRequestParser::resetInPreparationForNextRequest(void)
 {
 	state = PARSE_REQUEST_LINE;
 	request = HttpRequest();
-	errorStatusCode = NONE;
+	errorStatusCode = NO_STATUS_CODE;
 	bodyBytesNeeded = 0;
 	headerCount = 0;
 }
@@ -219,13 +220,62 @@ bool HttpRequestParser::parseRequestLine(void)
 	}
 	std::string line = buffer.substr(0, pos);
 	buffer.erase(0, pos + 2);
-	std::istringstream iss(line);
-	if (!(iss >> request.method >> request.path >> request.version))
+
+	// RFC 9112 spells the request line as exactly "method SP target SP
+	// version". Splitting on the two spaces rather than reading whitespace-
+	// separated tokens is what makes a fourth field, a missing field, a run of
+	// spaces or a leading space all detectable — extraction with >> would skip
+	// and collapse whitespace and then ignore anything after the third token.
+	std::size_t firstSpace = line.find(' ');
+	std::size_t secondSpace = line.find(' ', firstSpace + 1);
+	if (firstSpace == std::string::npos || secondSpace == std::string::npos)
 	{
 		state = PARSE_ERROR;
 		errorStatusCode = BAD_REQUEST;
 		return false;
 	}
+	std::string methodField = line.substr(0, firstSpace);
+	std::string targetField =
+		line.substr(firstSpace + 1, secondSpace - firstSpace - 1);
+	std::string versionField = line.substr(secondSpace + 1);
+	if (methodField.empty() || targetField.empty() || versionField.empty() ||
+	    versionField.find(' ') != std::string::npos)
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = BAD_REQUEST;
+		return false;
+	}
+
+	// Three separate questions, asked in order of how fundamental they are:
+	// is this a method HTTP defines at all, do we speak this protocol version,
+	// and only then, do we act on this method?
+	try
+	{
+		request.method = HttpMethodHelpers::getHttpMethodForString(methodField);
+	}
+	catch (const std::out_of_range &)
+	{
+		// Not a method HTTP defines, so the request line itself is bad. RFC
+		// 9110 suggests 501 here as well, but distinguishing an unknown token
+		// from a known method we have not built is more useful to us.
+		state = PARSE_ERROR;
+		errorStatusCode = BAD_REQUEST;
+		return false;
+	}
+	if (versionField != "HTTP/1.0" && versionField != "HTTP/1.1")
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = HTTP_VERSION_NOT_SUPPORTED;
+		return false;
+	}
+	if (!HttpMethodHelpers::getWhetherMethodIsImplemented(request.method))
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = NOT_IMPLEMENTED;
+		return false;
+	}
+	request.path = targetField;
+	request.version = versionField;
 	state = PARSE_HEADERS;
 	return true;
 }
@@ -361,7 +411,7 @@ HttpRequestParser::Result HttpRequestParser::feed(const char *data,
 {
 	if (state == PARSE_ERROR)
 	{
-		return ERROR;
+		return INVALID;
 	}
 	buffer.append(data, len);
 	if (state == PARSE_DONE)
@@ -391,7 +441,7 @@ HttpRequestParser::Result HttpRequestParser::feed(const char *data,
 	}
 	if (state == PARSE_ERROR)
 	{
-		return ERROR;
+		return INVALID;
 	}
 	return INCOMPLETE;
 }

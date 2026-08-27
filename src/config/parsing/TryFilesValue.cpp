@@ -6,21 +6,21 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/24 08:15:24 by emflynn           #+#    #+#             */
-/*   Updated: 2026/05/24 08:34:24 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:13:26 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "TryFilesValue.hpp"
 
 TryFilesValue::TryFilesValue(void)
-	: fallbackType(URL), fallbackHttpStatusCode(NONE)
+	: fallbackType(URL), fallbackHttpStatusCode(NO_STATUS_CODE)
 {
 }
 
 TryFilesValue::TryFilesValue(const std::vector<std::string> &files,
                              const std::string &fallbackUrl)
 	: files(files), fallbackType(URL), fallbackUrl(fallbackUrl),
-	  fallbackHttpStatusCode(NONE)
+	  fallbackHttpStatusCode(NO_STATUS_CODE)
 {
 }
 

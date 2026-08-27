@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 02:54:58 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/27 12:24:25 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:13:26 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1349,7 +1349,7 @@ void AConfig::printTo(std::ostream &stream, std::size_t depth) const
 		if (returnCode != iterator->first)
 		{
 			stream << " =";
-			if (returnCode != NONE)
+			if (returnCode != NO_STATUS_CODE)
 			{
 				stream << static_cast<int>(returnCode);
 			}

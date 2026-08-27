@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/12 03:19:25 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/27 12:23:09 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:13:26 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -546,7 +546,7 @@ void ConfigParser::handleErrorPage(AConfig &config)
 	bool hasResponseCodeModifier =
 		!wordLineNumberPairs[wordLineNumberPairs.size() - 2].first.empty() &&
 		wordLineNumberPairs[wordLineNumberPairs.size() - 2].first[0] == '=';
-	HttpStatusCode responseCode = NONE;
+	HttpStatusCode responseCode = NO_STATUS_CODE;
 	std::size_t statusCodeCount;
 	if (hasResponseCodeModifier)
 	{

@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 03:42:37 by emflynn           #+#    #+#             */
-/*   Updated: 2026/05/24 16:53:57 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:13:26 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 enum HttpStatusCode
 {
-	NONE = 0,
+	NO_STATUS_CODE = 0,
 
 	// 1xx: informational
 	CONTINUE = 100,

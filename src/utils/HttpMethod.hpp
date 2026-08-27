@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/24 17:36:38 by emflynn           #+#    #+#             */
-/*   Updated: 2026/05/24 17:43:51 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:27:17 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,12 +15,17 @@
 
 enum HttpMethod
 {
+	NO_METHOD = 0,
+
 	GET,
 	HEAD,
 	POST,
 	PUT,
 	PATCH,
-	DELETE
+	DELETE,
+	CONNECT,
+	OPTIONS,
+	TRACE
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:26:17 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/25 21:58:51 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 15:55:37 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,11 @@
 #include <map>
 #include <string>
 
+#include "HttpMethod.hpp"
+
 struct HttpRequest
 {
-	std::string method;
+	HttpMethod method;
 	std::string path;
 	std::string version;
 
@@ -28,7 +30,7 @@ struct HttpRequest
 	std::string body;
 	std::size_t contentLength;
 
-	HttpRequest(void): contentLength(0)
+	HttpRequest(void): method(NO_METHOD), contentLength(0)
 	{
 	}
 };

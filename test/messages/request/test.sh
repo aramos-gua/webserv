@@ -254,6 +254,20 @@ HEADERS:
 BODY: 0 bytes"
 	run_request_test
 
+	# A method other than GET, to show the enum round-trips rather than the
+	# dump simply echoing back whatever string arrived.
+	export TEST_NAME="DELETE request"
+	export REQUEST_FILE="delete-request.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: DELETE
+PATH: /resource
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+BODY: 0 bytes"
+	run_request_test
+
 	# Bytes arriving after a complete request belong to the next request on the
 	# connection and must survive both feed() and reset(). The count is exactly
 	# the length of the second request below.
@@ -336,91 +350,196 @@ if [ "$ANSWER" != "n" ]; then
 	export TEST_NAME="Request line with too few fields"
 	export REQUEST_FILE="invalid-request-line.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Empty request line"
 	export REQUEST_FILE="empty-request-line.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
+	run_request_test
+
+	# The request line is exactly "method SP target SP version": no fourth
+	# field, no repeated or stray spaces, no missing field.
+	export TEST_NAME="Request line with trailing garbage"
+	export REQUEST_FILE="request-line-trailing-garbage.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Request line with a doubled space"
+	export REQUEST_FILE="request-line-double-space.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Request line with a leading space"
+	export REQUEST_FILE="request-line-leading-space.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Request line with no version"
+	export REQUEST_FILE="request-line-missing-version.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	# A token HTTP does not define at all: the request line is bad, so 400.
+	export TEST_NAME="Unrecognised method"
+	export REQUEST_FILE="unknown-method.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	# Methods are case-sensitive, so "get" is not GET and is not recognised.
+	export TEST_NAME="Lowercase method"
+	export REQUEST_FILE="lowercase-method.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	# Methods HTTP does define but this server does not act on: 501, which is
+	# what separates "we have not built this" from "that is not a method".
+	export TEST_NAME="Recognised but unimplemented method: HEAD"
+	export REQUEST_FILE="unimplemented-method-head.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 501 Not Implemented"
+	run_request_test
+
+	export TEST_NAME="Recognised but unimplemented method: PUT"
+	export REQUEST_FILE="unimplemented-method-put.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 501 Not Implemented"
+	run_request_test
+
+	export TEST_NAME="Recognised but unimplemented method: PATCH"
+	export REQUEST_FILE="unimplemented-method-patch.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 501 Not Implemented"
+	run_request_test
+
+	export TEST_NAME="Recognised but unimplemented method: CONNECT"
+	export REQUEST_FILE="unimplemented-method-connect.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 501 Not Implemented"
+	run_request_test
+
+	export TEST_NAME="Recognised but unimplemented method: OPTIONS"
+	export REQUEST_FILE="unimplemented-method-options.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 501 Not Implemented"
+	run_request_test
+
+	export TEST_NAME="Recognised but unimplemented method: TRACE"
+	export REQUEST_FILE="unimplemented-method-trace.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 501 Not Implemented"
+	run_request_test
+
+	export TEST_NAME="Unsupported HTTP version"
+	export REQUEST_FILE="unsupported-version.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 505 HTTP Version Not Supported"
+	run_request_test
+
+	# The version token is case-sensitive too.
+	export TEST_NAME="Lowercase HTTP version"
+	export REQUEST_FILE="lowercase-version.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 505 HTTP Version Not Supported"
 	run_request_test
 
 	export TEST_NAME="Header line with no colon"
 	export REQUEST_FILE="malformed-header-line.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Whitespace between field name and colon"
 	export REQUEST_FILE="header-name-space-before-colon.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Space inside a field name"
 	export REQUEST_FILE="header-name-internal-space.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Empty field name"
 	export REQUEST_FILE="header-name-empty.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Field name containing a non-token character"
 	export REQUEST_FILE="header-name-non-token-character.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Obsolete line folding is rejected, not tidied up"
 	export REQUEST_FILE="header-obsolete-line-folding.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Non-numeric Content-Length"
 	export REQUEST_FILE="non-numeric-content-length.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Negative Content-Length"
 	export REQUEST_FILE="negative-content-length.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Duplicate Content-Length"
 	export REQUEST_FILE="duplicate-content-length.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Duplicate Host"
 	export REQUEST_FILE="duplicate-host.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Missing Host on HTTP/1.1"
 	export REQUEST_FILE="missing-host.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
@@ -429,7 +548,7 @@ STATUS: 400 Bad Request"
 	export TEST_NAME="Empty Host on HTTP/1.1"
 	export REQUEST_FILE="empty-host.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
@@ -437,63 +556,63 @@ STATUS: 400 Bad Request"
 	export TEST_NAME="Duplicate Host carrying identical values"
 	export REQUEST_FILE="duplicate-host-identical.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Duplicate User-Agent, whose tokens commas would corrupt"
 	export REQUEST_FILE="duplicate-user-agent.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Duplicate Cookie, whose values are semicolon-separated"
 	export REQUEST_FILE="duplicate-cookie.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Duplicate Authorization"
 	export REQUEST_FILE="duplicate-authorization.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Duplicate Date"
 	export REQUEST_FILE="duplicate-date.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Duplicate From"
 	export REQUEST_FILE="duplicate-from.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Duplicate Origin"
 	export REQUEST_FILE="duplicate-origin.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Duplicate Referer"
 	export REQUEST_FILE="duplicate-referer.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
 	export TEST_NAME="Duplicate Content-Type"
 	export REQUEST_FILE="duplicate-content-type.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 400 Bad Request"
 	run_request_test
 
@@ -501,28 +620,28 @@ STATUS: 400 Bad Request"
 	export REQUEST_FILE="body-too-large.http"
 	export OPTIONS="--max-body-size 10"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 413 Content Too Large"
 	run_request_test
 
 	export TEST_NAME="More headers than the parser accepts"
 	export REQUEST_FILE="too-many-headers.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 431 Request Header Fields Too Large"
 	run_result_test
 
 	export TEST_NAME="Oversized request line"
 	export REQUEST_FILE="request-line-too-large.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 414 URI Too Long"
 	run_result_test
 
 	export TEST_NAME="Oversized header line"
 	export REQUEST_FILE="headers-too-large.http"
 	export EXPECTED="\
-RESULT: ERROR
+RESULT: INVALID
 STATUS: 431 Request Header Fields Too Large"
 	run_result_test
 

@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/24 16:18:11 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/23 17:53:56 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 16:13:26 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,7 +95,7 @@ namespace
 }
 
 ReturnResponseValue::ReturnResponseValue(void)
-	: httpStatusCode(NONE), responseType(EMPTY)
+	: httpStatusCode(NO_STATUS_CODE), responseType(EMPTY)
 {
 }
 
