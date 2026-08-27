@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/27 21:55:00 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/27 21:27:42 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 22:25:06 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@ class HttpSyntax
 {
 public:
 	static const std::string CRLF;
+	static const std::string SEPARATOR;
 };
 
 #endif

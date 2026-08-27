@@ -10,6 +10,19 @@ export BINARY="../../../bin/messages-response"
 # later; the dumped form replaces it with a placeholder, but --raw is byte-exact
 # on purpose.
 #
+# As run_response_test, but comparing each line truncated, for a dump holding a
+# value too long to write out in full
+run_truncated_test() {
+	RESPONSE_FILE="$RESPONSES_DIR/$RESPONSE_FILE"
+	export ACTUAL="$($BINARY $OPTIONS $RESPONSE_FILE 2>&1 | cut -c1-30)"
+	if cmp -s <(echo "$EXPECTED") <(echo "$ACTUAL"); then
+		report_pass
+	else
+		report_fail && diff <(echo "$EXPECTED") <(echo "$ACTUAL")
+	fi
+	export OPTIONS=""
+}
+
 # Check that building a described response produces the expected dump. Every
 # dump ends in a FRAMING line, so each test also asserts that the head is
 # CRLF-terminated throughout and separated from the body by one empty line.
@@ -378,11 +391,45 @@ FRAMING: OK"
 	# Values are stripped of CR and LF; names are refused outright. A CRLF in a
 	# name would append header lines of the setter's choosing, which matters
 	# most once CGI scripts start supplying header names of their own.
+	# Limits on what a response may carry, enforced where headers are set rather
+	# than where they are written, so no producer can bypass them. These matter
+	# from step E onwards, when CGI scripts supply headers this server did not
+	# write. The limit is inclusive, so the boundary is tested from both sides.
+	export TEST_NAME="A header line of exactly the limit is accepted"
+	export RESPONSE_FILE="header-line-at-limit.response"
+	export EXPECTED="\
+STATUS-LINE: HTTP/1.1 200 OK
+HEADERS:
+  X-Pad: vvvvvvvvvvvvvvvvvvvvv
+  Connection: close
+  Date: <IMF-fixdate>
+  Server: penguinx
+  Content-Length: 0
+BODY: 0 bytes
+FRAMING: OK"
+	run_truncated_test
+
+	export TEST_NAME="A header line one byte over the limit is refused"
+	export OPTIONS="$RESPONSES_DIR/header-line-too-long.response"
+	export EXPECTED="\
+An error occurred during execution:
+Refused header field \"X-Pad\".
+Unable to continue."
+	run_usage_test
+
+	export TEST_NAME="More header fields than a response may carry is refused"
+	export OPTIONS="$RESPONSES_DIR/too-many-headers.response"
+	export EXPECTED="\
+An error occurred during execution:
+Refused header field \"X-Header-100\".
+Unable to continue."
+	run_usage_test
+
 	export TEST_NAME="A header name that is not a valid field name is refused"
 	export OPTIONS="$RESPONSES_DIR/invalid-header-name.response"
 	export EXPECTED="\
 An error occurred during execution:
-Invalid header field name \"Has Space\".
+Refused header field \"Has Space\".
 Unable to continue."
 	run_usage_test
 
@@ -390,7 +437,7 @@ Unable to continue."
 	export OPTIONS="$RESPONSES_DIR/header-name-with-crlf.response"
 	export EXPECTED="\
 An error occurred during execution:
-Invalid header field name \"X-Ok\\r\\nInjected\".
+Refused header field \"X-Ok\\r\\nInjected\".
 Unable to continue."
 	run_usage_test
 

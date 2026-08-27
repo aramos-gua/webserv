@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/27 19:10:00 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/27 19:10:00 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 22:29:24 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,14 +56,10 @@ static std::string readWholeFile(const std::string &filePath)
 	return contents.str();
 }
 
-// A body file is named relative to the response file that mentions it, so a
-// fixture works wherever the suite is run from. Same rule the config parser
-// uses for include.
 static std::string resolveRelativeTo(const std::string &referencePath,
                                      const std::string &path)
 {
 	std::size_t lastSlash = referencePath.rfind('/');
-
 	if ((!path.empty() && path[0] == '/') || lastSlash == std::string::npos)
 	{
 		return path;
@@ -133,7 +129,7 @@ static void applyHeaderDirective(HttpResponse &response,
 	}
 	if (!response.setHeader(name, unescape(headerValue)))
 	{
-		throw std::runtime_error("Invalid header field name \"" + name + "\"");
+		throw std::runtime_error("Refused header field \"" + name + "\"");
 	}
 }
 
