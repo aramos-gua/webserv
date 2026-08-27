@@ -10,9 +10,11 @@
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <stdexcept>
 #include <utility>
 
 #include "HttpMethodHelpers.hpp"
+#include "StringBase.hpp"
 
 // NOLINTBEGIN(bugprone-throwing-static-initialization)
 
@@ -51,10 +53,24 @@ const std::map<HttpMethod, std::string> HttpMethodHelpers::
 HttpMethod HttpMethodHelpers::getHttpMethodForString(
 	const std::string &methodString)
 {
-	return HTTP_METHODS_FOR_STRINGS.at(methodString);
+	std::map<std::string, HttpMethod>::const_iterator iterator =
+		HTTP_METHODS_FOR_STRINGS.find(methodString);
+	if (iterator == HTTP_METHODS_FOR_STRINGS.end())
+	{
+		throw std::out_of_range(StringBase() << "Unknown HTTP method \""
+		                                     << methodString << "\"");
+	}
+	return iterator->second;
 }
 
 std::string HttpMethodHelpers::getStringForHttpMethod(HttpMethod method)
 {
-	return STRINGS_FOR_HTTP_METHODS.at(method);
+	std::map<HttpMethod, std::string>::const_iterator iterator =
+		STRINGS_FOR_HTTP_METHODS.find(method);
+	if (iterator == STRINGS_FOR_HTTP_METHODS.end())
+	{
+		throw std::out_of_range(StringBase() << "Unknown HTTP method "
+		                                     << static_cast<int>(method));
+	}
+	return iterator->second;
 }

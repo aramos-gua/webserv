@@ -16,7 +16,7 @@
 enum AccessRule
 {
 	DENY,
-	ALLOW,
+	ALLOW
 };
 
 #endif

@@ -22,6 +22,7 @@
 
 #include "ConfigLexer.hpp"
 #include "HttpStatusCode.hpp"
+#include "LogLevel.hpp"
 
 class AConfig;
 class AConfigToken;
@@ -67,6 +68,7 @@ private:
 	std::size_t parseSize(const std::string &value, std::size_t lineNumber);
 	HttpStatusCode parseHttpStatusCode(const std::string &value,
 	                                   std::size_t lineNumber);
+	LogLevel parseLogLevel(const std::string &value, std::size_t lineNumber);
 
 	void handleAccessLog(AConfig &config);
 	void handleAlias(AConfig &config);

@@ -24,7 +24,7 @@ public:
 	enum FallbackType
 	{
 		URL,
-		HTTP_STATUS_CODE,
+		HTTP_STATUS_CODE
 	};
 
 	TryFilesValue(void);

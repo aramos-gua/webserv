@@ -183,6 +183,20 @@ Unable to continue."
 Unable to continue."
 	run_error_test
 
+	export TEST_NAME="Bad config file: duplicate 'allow' for the same subnet"
+	export CONFIG_FILE="duplicate-allow.conf"
+	export EXPECTED="An error occurred during execution:
+\"../../../test/config/parsing/config-files/duplicate-allow.conf\", line 4: Directive \"allow\" with value \"10.0.0.0/8\" conflicts with existing directive in \"server\" context.
+Unable to continue."
+	run_error_test
+
+	export TEST_NAME="Bad config file: 'allow' and 'deny' for the same subnet"
+	export CONFIG_FILE="conflicting-access-rules.conf"
+	export EXPECTED="An error occurred during execution:
+\"../../../test/config/parsing/config-files/conflicting-access-rules.conf\", line 4: Directive \"deny\" with value \"10.0.0.0/8\" conflicts with existing directive in \"server\" context.
+Unable to continue."
+	run_error_test
+
 	export TEST_NAME="Bad config file: 'allow' with too many arguments"
 	export CONFIG_FILE="allow-too-many-arguments.conf"
 	export EXPECTED="An error occurred during execution:
@@ -355,6 +369,13 @@ Unable to continue."
 	export CONFIG_FILE="error-log-missing-semicolon.conf"
 	export EXPECTED="An error occurred during execution:
 \"../../../test/config/parsing/config-files/error-log-missing-semicolon.conf\", line 2: Expected ';' after \"error_log\".
+Unable to continue."
+	run_error_test
+
+	export TEST_NAME="Bad config file: 'error_log' with unknown log level"
+	export CONFIG_FILE="error-log-unknown-level.conf"
+	export EXPECTED="An error occurred during execution:
+\"../../../test/config/parsing/config-files/error-log-unknown-level.conf\", line 3: Unknown log level \"verbose\" for \"error_log\".
 Unable to continue."
 	run_error_test
 
@@ -578,7 +599,7 @@ Unable to continue."
 	export TEST_NAME="Bad config file: 'location' prefix declared both with and without '^~'"
 	export CONFIG_FILE="location-duplicate-prefix-modifiers.conf"
 	export EXPECTED="An error occurred during execution:
-\"../../../test/config/parsing/config-files/location-duplicate-prefix-modifiers.conf\", line 5: Duplicate directive \"location\" in \"server\" context.
+\"../../../test/config/parsing/config-files/location-duplicate-prefix-modifiers.conf\", line 5: Directive \"location\" with value \"/assets/\" conflicts with existing directive in \"server\" context.
 Unable to continue."
 	run_error_test
 
@@ -976,7 +997,7 @@ http {
 	export CONFIG_FILE="all-directives.conf"
 	export EXPECTED="\
 daemon on;
-error_log /var/log/penguinx/error.log;
+error_log /var/log/penguinx/error.log error;
 user www-data www-group;
 worker_processes 1;
 events {
@@ -1007,6 +1028,7 @@ http {
         listen 127.0.0.1:9090 default_server;
         listen [::]:8080 default_server;
         server_name alpha.example.com zeta.example.com;
+        error_log /var/log/penguinx/server-error.log;
         error_page 403 /403.html;
         root /srv/penguinx/main;
         try_files /index.html /index.htm =404;
@@ -1075,6 +1097,37 @@ http {
         }
         location ~\$ .php {
             return 502;
+        }
+    }
+}"
+	run_success_test
+
+	export TEST_NAME="Every 'error_log' level, and the form that omits it"
+	export CONFIG_FILE="error-log-levels.conf"
+	export EXPECTED="\
+events {
+    worker_connections 1024;
+}
+http {
+    error_log /var/log/penguinx/http.log;
+    server {
+        listen 0.0.0.0:8080 default_server;
+        listen [::]:8080 default_server;
+        error_log /var/log/penguinx/server.log warn;
+        location = /debug {
+            error_log /var/log/penguinx/debug.log debug;
+        }
+        location = /error {
+            error_log /var/log/penguinx/error.log error;
+        }
+        location = /fatal {
+            error_log /var/log/penguinx/fatal.log fatal;
+        }
+        location = /info {
+            error_log /var/log/penguinx/info.log info;
+        }
+        location = /none {
+            error_log /var/log/penguinx/none.log;
         }
     }
 }"
@@ -1200,6 +1253,10 @@ all-directives-reordered.conf"
 
 	export TEST_NAME="Printed config reparses unchanged: sequential includes"
 	export CONFIG_FILE="include-sequential.conf"
+	run_round_trip_test
+
+	export TEST_NAME="Printed config reparses unchanged: error log levels"
+	export CONFIG_FILE="error-log-levels.conf"
 	run_round_trip_test
 
 	export TEST_NAME="Printed config reparses unchanged: priority prefix locations"

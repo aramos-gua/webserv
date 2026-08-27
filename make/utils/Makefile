@@ -27,6 +27,7 @@ SRCS_BASE :=			ConfigTypeHelpers.cpp \
 						HttpStatusCodeHelpers.cpp \
 						IpAddressHelpers.cpp \
 						IpAddressPortPairHelpers.cpp \
+						LogLevelHelpers.cpp \
 						LongestStringFirstComparator.cpp \
 						MostSpecificMaskFirstComparator.cpp \
 						ServerNameHelpers.cpp \

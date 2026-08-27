@@ -25,7 +25,7 @@ public:
 	{
 		EMPTY,
 		BODY_TEXT,
-		REDIRECT_URL,
+		REDIRECT_URL
 	};
 
 	ReturnResponseValue(void);

@@ -51,14 +51,14 @@ private:
 	enum EscapeMode
 	{
 		UNESCAPED,
-		ESCAPED,
+		ESCAPED
 	} escapeMode;
 
 	enum QuoteMode
 	{
 		UNQUOTED,
 		SINGLE_QUOTED,
-		DOUBLE_QUOTED,
+		DOUBLE_QUOTED
 	} quoteMode;
 
 	std::size_t mostRecentOpeningQuoteLineNumber;

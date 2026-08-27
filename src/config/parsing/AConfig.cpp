@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 02:54:58 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/27 10:53:33 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 12:24:25 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@
 #include "IpAddressPortPairHelpers.hpp"
 #include "LimitExceptConfig.hpp"
 #include "LocationConfig.hpp"
+#include "LogLevelHelpers.hpp"
 #include "PrintableServerConfig.hpp"
 #include "ServerConfig.hpp"
 #include "ServerNameHelpers.hpp"
@@ -80,24 +81,24 @@ void AConfig::setWhetherShouldRunAsDaemon(bool shouldRunAsDaemon)
 	this->shouldRunAsDaemon.set(shouldRunAsDaemon);
 }
 
-bool AConfig::errorLogFilePathSettingResolves(void) const
+bool AConfig::errorLogSettingResolves(void) const
 {
-	return settingResolvesAtThisConfigLevelOrAbove(&AConfig::errorLogFilePath);
+	return settingResolvesAtThisConfigLevelOrAbove(&AConfig::errorLog);
 }
 
-const std::string &AConfig::resolveErrorLogFilePathSetting(void) const
+const ErrorLogValue &AConfig::resolveErrorLogSetting(void) const
 {
-	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::errorLogFilePath);
+	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::errorLog);
 }
 
-void AConfig::setErrorLogFilePath(const std::string &errorLogFilePath)
+void AConfig::setErrorLog(const ErrorLogValue &errorLog)
 {
 	throwIfFrozen();
 	static const ConfigType ALLOWED_TYPES[] = {MAIN, HTTP, SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(this->errorLogFilePath.checkIfSet());
-	this->errorLogFilePath.set(errorLogFilePath);
+	throwIfAlreadySet(this->errorLog.checkIfSet());
+	this->errorLog.set(errorLog);
 }
 
 bool AConfig::eventsConfigSettingResolves(void) const
@@ -308,7 +309,9 @@ void AConfig::setErrorPageForHttpStatusCode(
 	static const ConfigType ALLOWED_TYPES[] = {HTTP, SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(errorPages.find(statusCode) != errorPages.end());
+	throwIfConflictingDirectiveAlreadySet(
+		errorPages.find(statusCode) != errorPages.end(),
+		StringBase() << static_cast<int>(statusCode));
 	errorPages[statusCode] = errorPageValue;
 }
 
@@ -493,7 +496,7 @@ void AConfig::setLocationConfigForExactPath(
 		insertionResult = exactLocationConfigs.insert(
 			std::pair<std::string, LocationConfig *>(exactPath, NULL));
 	bool wasNewlyInserted = insertionResult.second;
-	throwIfAlreadySet(!wasNewlyInserted);
+	throwIfConflictingDirectiveAlreadySet(!wasNewlyInserted, exactPath);
 	std::map<std::string, LocationConfig *>::iterator
 		newlyInsertedLocationConfigIterator = insertionResult.first;
 	newlyInsertedLocationConfigIterator->second =
@@ -524,9 +527,10 @@ void AConfig::setLocationConfigForPathPrefix(
 	static const ConfigType ALLOWED_TYPES[] = {SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(
+	throwIfConflictingDirectiveAlreadySet(
 		pathPartAlreadyPresent(prefixLocationConfigs, pathPrefix) ||
-		pathPartAlreadyPresent(priorityPrefixLocationConfigs, pathPrefix));
+			pathPartAlreadyPresent(priorityPrefixLocationConfigs, pathPrefix),
+		pathPrefix);
 	prefixLocationConfigs
 		.insert(std::pair<std::string, LocationConfig *>(
 			pathPrefix, new LocationConfig(locationConfig)))
@@ -556,9 +560,10 @@ void AConfig::setLocationConfigForPriorityPathPrefix(
 	static const ConfigType ALLOWED_TYPES[] = {SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(
+	throwIfConflictingDirectiveAlreadySet(
 		pathPartAlreadyPresent(priorityPrefixLocationConfigs, pathPrefix) ||
-		pathPartAlreadyPresent(prefixLocationConfigs, pathPrefix));
+			pathPartAlreadyPresent(prefixLocationConfigs, pathPrefix),
+		pathPrefix);
 	priorityPrefixLocationConfigs
 		.insert(std::pair<std::string, LocationConfig *>(
 			pathPrefix, new LocationConfig(locationConfig)))
@@ -591,8 +596,8 @@ void AConfig::setLocationConfigForPathSuffix(
 	static const ConfigType ALLOWED_TYPES[] = {SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(
-		pathPartAlreadyPresent(suffixLocationConfigs, pathSuffix));
+	throwIfConflictingDirectiveAlreadySet(
+		pathPartAlreadyPresent(suffixLocationConfigs, pathSuffix), pathSuffix);
 	suffixLocationConfigs
 		.insert(std::pair<std::string, LocationConfig *>(
 			pathSuffix, new LocationConfig(locationConfig)))
@@ -632,9 +637,10 @@ void AConfig::addPendingListenAddressPortPair(
 			rawAddressPortPair);
 	for (std::size_t i = 0; i < canonicalPairs.size(); ++i)
 	{
-		throwIfAlreadySet(
+		throwIfConflictingDirectiveAlreadySet(
 			pendingListenAddressPortPairs.find(canonicalPairs[i]) !=
-			pendingListenAddressPortPairs.end());
+				pendingListenAddressPortPairs.end(),
+			canonicalPairs[i]);
 		pendingListenAddressPortPairs[canonicalPairs[i]] =
 			defaultServerSpecification;
 	}
@@ -861,7 +867,7 @@ void AConfig::setAccessRuleForIpAddressAndMask(
 	{
 		if (canonicalKey == iterator->first)
 		{
-			throwIfAlreadySet(true);
+			throwIfConflictingDirectiveAlreadySet(true, canonicalKey);
 		}
 	}
 	accessRules.insert(
@@ -966,6 +972,15 @@ void AConfig::throwIfAlreadySet(bool isAlreadySet)
 	}
 }
 
+void AConfig::throwIfConflictingDirectiveAlreadySet(bool isAlreadySet,
+                                                    const std::string &value)
+{
+	if (isAlreadySet)
+	{
+		throw ConflictingDirectiveAlreadySetException(value);
+	}
+}
+
 void AConfig::throwIfNotSupportedForConfigType(
 	const ConfigType *allowedTypes, std::size_t allowedTypesCount) const
 {
@@ -1012,7 +1027,7 @@ const TSetting &AConfig::resolveSettingAtThisConfigLevelOrAbove(
 void AConfig::setUpFrom(const AConfig &other)
 {
 	shouldRunAsDaemon = other.shouldRunAsDaemon;
-	errorLogFilePath = other.errorLogFilePath;
+	errorLog = other.errorLog;
 	workerUser = other.workerUser;
 	workerGroup = other.workerGroup;
 	workerMaxConnections = other.workerMaxConnections;
@@ -1230,6 +1245,26 @@ AConfig::DirectiveAlreadySetException::DirectiveAlreadySetException(void)
 {
 }
 
+AConfig::ConflictingDirectiveAlreadySetException::
+	ConflictingDirectiveAlreadySetException(const std::string &value)
+	: std::runtime_error(StringBase()
+                         << "Conflicting directive already set with value \""
+                         << value << "\" for this context"),
+	  value(value)
+{
+}
+
+AConfig::ConflictingDirectiveAlreadySetException::
+	~ConflictingDirectiveAlreadySetException(void) throw()
+{
+}
+
+const std::string &AConfig::ConflictingDirectiveAlreadySetException::getValue(
+	void) const
+{
+	return value;
+}
+
 AConfig::DirectiveNotSupportedForConfigTypeException::
 	DirectiveNotSupportedForConfigTypeException(void)
 	: std::runtime_error("Directive not supported for this config type")
@@ -1291,10 +1326,17 @@ void AConfig::printTo(std::ostream &stream, std::size_t depth) const
 			   << std::endl;
 	}
 
-	if (errorLogFilePath.checkIfSet())
+	if (errorLog.checkIfSet())
 	{
-		stream << indent << "error_log " << errorLogFilePath.get() << ";"
-			   << std::endl;
+		const ErrorLogValue &errorLogValue = errorLog.get();
+		stream << indent << "error_log " << errorLogValue.getFilePath();
+		if (errorLogValue.getWhetherLogLevelSpecified())
+		{
+			stream << " "
+				   << LogLevelHelpers::getStringForLogLevel(
+						  errorLogValue.getLogLevel());
+		}
+		stream << ";" << std::endl;
 	}
 
 	for (std::map<HttpStatusCode, ErrorPageValue>::const_iterator iterator =

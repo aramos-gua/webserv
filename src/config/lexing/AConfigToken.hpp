@@ -23,7 +23,7 @@ public:
 	{
 		TERMINATING,
 		WORD,
-		SPECIAL_CHARACTER,
+		SPECIAL_CHARACTER
 	};
 
 	AConfigToken(void);

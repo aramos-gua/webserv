@@ -16,7 +16,7 @@
 enum DefaultServerSpecification
 {
 	NOT_DEFAULT_SERVER,
-	DEFAULT_SERVER,
+	DEFAULT_SERVER
 };
 
 #endif

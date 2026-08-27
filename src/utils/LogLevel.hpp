@@ -1,26 +1,25 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ConfigType.hpp                                     :+:      :+:    :+:   */
+/*   LogLevel.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/24 07:05:20 by emflynn           #+#    #+#             */
-/*   Updated: 2026/05/24 07:06:01 by emflynn          ###   ########.fr       */
+/*   Created: 2026/08/27 11:20:09 by emflynn           #+#    #+#             */
+/*   Updated: 2026/08/27 11:22:20 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef CONFIG_TYPE_HPP
-#define CONFIG_TYPE_HPP
+#ifndef LOG_LEVEL_HPP
+#define LOG_LEVEL_HPP
 
-enum ConfigType
+enum LogLevel
 {
-	MAIN,
-	EVENTS,
-	HTTP,
-	SERVER,
-	LOCATION,
-	LIMIT_EXCEPT
+	FATAL,
+	ERROR,
+	WARN,
+	INFO,
+	DEBUG
 };
 
 #endif

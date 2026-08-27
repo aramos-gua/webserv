@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 02:54:15 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/27 10:54:58 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 12:26:04 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@
 #include "AccessRule.hpp"
 #include "ConfigType.hpp"
 #include "DefaultServerSpecification.hpp"
+#include "ErrorLogValue.hpp"
 #include "ErrorPageValue.hpp"
 #include "HttpMethod.hpp"
 #include "HttpStatusCode.hpp"
@@ -55,9 +56,9 @@ public:
 	bool resolveShouldRunAsDaemonSetting(void) const;
 	void setWhetherShouldRunAsDaemon(bool shouldRunAsDaemon);
 
-	bool errorLogFilePathSettingResolves(void) const;
-	const std::string &resolveErrorLogFilePathSetting(void) const;
-	void setErrorLogFilePath(const std::string &errorLogFilePath);
+	bool errorLogSettingResolves(void) const;
+	const ErrorLogValue &resolveErrorLogSetting(void) const;
+	void setErrorLog(const ErrorLogValue &errorLog);
 
 	bool eventsConfigSettingResolves(void) const;
 	const EventsConfig &resolveEventsConfigSetting(void) const;
@@ -199,6 +200,18 @@ public:
 		DirectiveAlreadySetException(void);
 	};
 
+	class ConflictingDirectiveAlreadySetException: public std::runtime_error
+	{
+	public:
+		ConflictingDirectiveAlreadySetException(const std::string &value);
+		~ConflictingDirectiveAlreadySetException(void) throw();
+
+		const std::string &getValue(void) const;
+
+	private:
+		std::string value;
+	};
+
 	class DirectiveNotSupportedForConfigTypeException: public std::runtime_error
 	{
 	public:
@@ -219,6 +232,8 @@ private:
 		t_server_configs_by_address_port_pair;
 
 	static void throwIfAlreadySet(bool isAlreadySet);
+	static void throwIfConflictingDirectiveAlreadySet(bool isAlreadySet,
+	                                                  const std::string &value);
 	void throwIfNotSupportedForConfigType(const ConfigType *allowedTypes,
 	                                      std::size_t allowedTypesCount) const;
 
@@ -263,7 +278,7 @@ private:
 
 	// From Nginx core functionality
 	OverridableConfigSetting<bool> shouldRunAsDaemon;
-	OverridableConfigSetting<std::string> errorLogFilePath;
+	OverridableConfigSetting<ErrorLogValue> errorLog;
 	EventsConfig *eventsConfig;
 	OverridableConfigSetting<std::string> workerUser;
 	OverridableConfigSetting<std::string> workerGroup;

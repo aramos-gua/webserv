@@ -24,6 +24,7 @@ MAKE_DIR :=				$(REPO_DIR)/make
 
 SRCS_BASE :=			AConfig.cpp \
 						ConfigParser.cpp \
+						ErrorLogValue.cpp \
 						ErrorPageValue.cpp \
 						EventsConfig.cpp \
 						HttpConfig.cpp \

@@ -24,7 +24,7 @@ public:
 	{
 		SEMICOLON,
 		LEFT_BRACE,
-		RIGHT_BRACE,
+		RIGHT_BRACE
 	};
 
 	SpecialCharacterConfigToken(void);

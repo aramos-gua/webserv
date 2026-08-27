@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/12 03:19:25 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/25 23:50:41 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 12:23:09 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@
 #include "AccessRule.hpp"
 #include "ConfigParser.hpp"
 #include "ConfigTypeHelpers.hpp"
+#include "ErrorLogValue.hpp"
 #include "ErrorPageValue.hpp"
 #include "EventsConfig.hpp"
 #include "HttpConfig.hpp"
@@ -29,6 +30,7 @@
 #include "LimitExceptConfig.hpp"
 #include "LimitExceptValue.hpp"
 #include "LocationConfig.hpp"
+#include "LogLevelHelpers.hpp"
 #include "ReturnResponseValue.hpp"
 #include "ServerConfig.hpp"
 #include "SpecialCharacterConfigToken.hpp"
@@ -360,6 +362,17 @@ void ConfigParser::parseDirectives(AConfig &config)
 					   config.getConfigType())
 				<< "\" context");
 		}
+		catch (const AConfig::ConflictingDirectiveAlreadySetException &e)
+		{
+			throw std::runtime_error(
+				StringBase()
+				<< getLocation(currentDirectiveLineNumber) << ": Directive \""
+				<< currentDirective << "\" with value \"" << e.getValue()
+				<< "\" conflicts with existing directive in \""
+				<< ConfigTypeHelpers::getStringForConfigType(
+					   config.getConfigType())
+				<< "\" context");
+		}
 		catch (const AConfig::DirectiveNotSupportedForConfigTypeException &)
 		{
 			throw std::runtime_error(
@@ -412,6 +425,21 @@ HttpStatusCode ConfigParser::parseHttpStatusCode(const std::string &value,
 	return statusCode;
 }
 
+LogLevel ConfigParser::parseLogLevel(const std::string &value,
+                                     std::size_t lineNumber)
+{
+	try
+	{
+		return LogLevelHelpers::getLogLevelForString(value);
+	}
+	catch (const std::out_of_range &)
+	{
+		throw std::runtime_error(
+			StringBase() << getLocation(lineNumber) << ": Unknown log level \""
+						 << value << "\" for \"" << currentDirective << "\"");
+	}
+}
+
 void ConfigParser::handleAccessLog(AConfig &config)
 {
 	std::string path = expectWord();
@@ -434,7 +462,7 @@ void ConfigParser::handleAllow(AConfig &config)
 	{
 		config.setAccessRuleForIpAddressAndMask(address, ALLOW);
 	}
-	catch (const std::exception &e)
+	catch (const std::invalid_argument &e)
 	{
 		throw std::runtime_error(StringBase()
 		                         << getLocation(currentDirectiveLineNumber)
@@ -478,7 +506,7 @@ void ConfigParser::handleDeny(AConfig &config)
 	{
 		config.setAccessRuleForIpAddressAndMask(address, DENY);
 	}
-	catch (const std::exception &e)
+	catch (const std::invalid_argument &e)
 	{
 		throw std::runtime_error(StringBase()
 		                         << getLocation(currentDirectiveLineNumber)
@@ -489,8 +517,17 @@ void ConfigParser::handleDeny(AConfig &config)
 void ConfigParser::handleErrorLog(AConfig &config)
 {
 	std::string path = expectWord();
+	if (currentToken->getType() != AConfigToken::WORD)
+	{
+		expectSemicolon();
+		config.setErrorLog(ErrorLogValue(path));
+		return;
+	}
+	std::size_t logLevelLineNumber = currentToken->getLineNumber();
+	std::string logLevelString = expectWord();
 	expectSemicolon();
-	config.setErrorLogFilePath(path);
+	config.setErrorLog(
+		ErrorLogValue(path, parseLogLevel(logLevelString, logLevelLineNumber)));
 }
 
 void ConfigParser::handleErrorPage(AConfig &config)

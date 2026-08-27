@@ -11,9 +11,11 @@
 /* ************************************************************************** */
 
 #include <map>
+#include <stdexcept>
 #include <utility>
 
 #include "ConfigTypeHelpers.hpp"
+#include "StringBase.hpp"
 
 // NOLINTBEGIN(bugprone-throwing-static-initialization)
 
@@ -37,5 +39,12 @@ const std::map<ConfigType, std::string> ConfigTypeHelpers::
 const std::string &ConfigTypeHelpers::getStringForConfigType(
 	ConfigType configType)
 {
-	return STRINGS_FOR_CONFIG_TYPES.at(configType);
+	std::map<ConfigType, std::string>::const_iterator iterator =
+		STRINGS_FOR_CONFIG_TYPES.find(configType);
+	if (iterator == STRINGS_FOR_CONFIG_TYPES.end())
+	{
+		throw std::out_of_range(StringBase() << "Unknown config type "
+		                                     << static_cast<int>(configType));
+	}
+	return iterator->second;
 }
