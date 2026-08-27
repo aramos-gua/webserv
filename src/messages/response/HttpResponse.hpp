@@ -23,8 +23,6 @@
 class HttpResponse
 {
 public:
-	typedef t_http_headers t_headers;
-
 	HttpResponse(void);
 	HttpResponse(const HttpResponse &other);
 	HttpResponse &operator=(const HttpResponse &other);
@@ -32,7 +30,7 @@ public:
 
 	HttpVersion getVersion(void) const;
 	HttpStatusCode getStatusCode(void) const;
-	const t_headers &getHeaders(void) const;
+	const t_http_headers &getHeaders(void) const;
 	const std::string &getBody(void) const;
 
 	// The length of the body whether it is held here or not, which is what
@@ -56,7 +54,7 @@ public:
 private:
 	HttpVersion version;
 	HttpStatusCode statusCode;
-	t_headers headers;
+	t_http_headers headers;
 
 	// The body is either held here, or it lives outside the response and only
 	// its length is recorded. An external body is sent by whoever owns its file

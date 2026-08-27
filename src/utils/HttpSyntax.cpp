@@ -1,24 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HttpHeaders.hpp                                    :+:      :+:    :+:   */
+/*   HttpSyntax.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/08/27 21:40:00 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/27 21:28:07 by emflynn          ###   ########.fr       */
+/*   Created: 2026/08/27 21:55:00 by emflynn           #+#    #+#             */
+/*   Updated: 2026/08/27 21:55:00 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef HTTP_HEADERS_HPP
-#define HTTP_HEADERS_HPP
+#include "HttpSyntax.hpp"
 
-#include <map>
-#include <string>
+// NOLINTBEGIN(bugprone-throwing-static-initialization)
 
-#include "CaseInsensitiveComparator.hpp"
+const std::string HttpSyntax::CRLF = "\r\n";
 
-typedef std::map<std::string, std::string, CaseInsensitiveComparator>
-	t_http_headers;
-
-#endif
+// NOLINTEND(bugprone-throwing-static-initialization)

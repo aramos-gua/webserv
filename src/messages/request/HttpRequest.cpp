@@ -70,7 +70,7 @@ HttpVersion HttpRequest::getVersion(void) const
 	return version;
 }
 
-const HttpRequest::t_headers &HttpRequest::getHeaders(void) const
+const t_http_headers &HttpRequest::getHeaders(void) const
 {
 	return headers;
 }
@@ -97,7 +97,7 @@ void HttpRequest::setVersion(HttpVersion version)
 
 bool HttpRequest::addHeader(const std::string &name, const std::string &value)
 {
-	t_headers::iterator existingHeader = headers.find(name);
+	t_http_headers::iterator existingHeader = headers.find(name);
 
 	if (existingHeader == headers.end())
 	{

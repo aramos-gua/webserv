@@ -19,6 +19,7 @@
 
 #include "HttpResponseBuilder.hpp"
 #include "HttpStatusCodeHelpers.hpp"
+#include "HttpSyntax.hpp"
 #include "HttpVersionHelpers.hpp"
 #include "StringHelpers.hpp"
 
@@ -84,13 +85,13 @@ std::string HttpResponseBuilder::build(const HttpResponse &res)
 	std::ostringstream out;
 	out << getVersionString(res.getVersion()) << " "
 		<< static_cast<int>(res.getStatusCode()) << " "
-		<< getReasonPhrase(res.getStatusCode()) << "\r\n";
+		<< getReasonPhrase(res.getStatusCode()) << HttpSyntax::CRLF;
 	// Field names are case-insensitive, so the two the builder decides for
 	// itself have to be recognised however the caller spelled them. Matching
 	// exact spellings let "Content-length" through, and the response then went
 	// out carrying two Content-Length headers — which is how a recipient and
 	// the next hop come to disagree about where the body ends.
-	HttpResponse::t_headers::const_iterator headerIterator;
+	t_http_headers::const_iterator headerIterator;
 	std::set<std::string> callerSuppliedNames;
 	for (headerIterator = res.getHeaders().begin();
 	     headerIterator != res.getHeaders().end(); ++headerIterator)
@@ -104,7 +105,7 @@ std::string HttpResponseBuilder::build(const HttpResponse &res)
 		callerSuppliedNames.insert(lowercaseName);
 		out << headerIterator->first << ": "
 			<< StringHelpers::removeLineBreaks(headerIterator->second)
-			<< "\r\n";
+			<< HttpSyntax::CRLF;
 	}
 	// Defaults, each supplied only when the caller has not spoken for itself.
 	if (callerSuppliedNames.find("connection") == callerSuppliedNames.end())
@@ -118,12 +119,12 @@ std::string HttpResponseBuilder::build(const HttpResponse &res)
 		std::string httpDate = getCurrentHttpDate();
 		if (!httpDate.empty())
 		{
-			out << "Date: " << httpDate << "\r\n";
+			out << "Date: " << httpDate << HttpSyntax::CRLF;
 		}
 	}
 	if (callerSuppliedNames.find("server") == callerSuppliedNames.end())
 	{
-		out << "Server: " << SERVER_NAME << "\r\n";
+		out << "Server: " << SERVER_NAME << HttpSyntax::CRLF;
 	}
 	// 204 and 304 cannot carry a body, so they get no Content-Length either:
 	// RFC 9110 forbids the field outright on a 204, and on a 304 a length of
@@ -135,8 +136,8 @@ std::string HttpResponseBuilder::build(const HttpResponse &res)
 	// response — the framing hole this field exists to close.
 	if (!HttpStatusCodeHelpers::takesNoValue(res.getStatusCode()))
 	{
-		out << "Content-Length: " << res.getBodyLength() << "\r\n";
-		out << "\r\n";
+		out << "Content-Length: " << res.getBodyLength() << HttpSyntax::CRLF;
+		out << HttpSyntax::CRLF;
 		// An external body is not here to be written. build() produces the head
 		// and the caller streams the rest from whatever holds it.
 		if (!res.getWhetherBodyIsExternal())
@@ -145,6 +146,6 @@ std::string HttpResponseBuilder::build(const HttpResponse &res)
 		}
 		return out.str();
 	}
-	out << "\r\n";
+	out << HttpSyntax::CRLF;
 	return out.str();
 }

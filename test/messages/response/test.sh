@@ -169,6 +169,23 @@ FRAMING: OK"
 	# to be dropped however it was spelled. Field names are case-insensitive, and
 	# two Content-Length headers in one response is what lets a recipient and the
 	# next hop disagree about where the body ends.
+	# Field names are case-insensitive, so the container holds one entry per
+	# field however it is spelled. The first spelling is the one kept; the
+	# last value is the one that wins.
+	export TEST_NAME="One entry per field name, whatever the case"
+	export RESPONSE_FILE="duplicate-header-name-cases.response"
+	export EXPECTED="\
+STATUS-LINE: HTTP/1.1 200 OK
+HEADERS:
+  Content-Type: text/xml
+  Connection: close
+  Date: <IMF-fixdate>
+  Server: penguinx
+  Content-Length: 0
+BODY: 0 bytes
+FRAMING: OK"
+	run_response_test
+
 	export TEST_NAME="Caller's Content-Length is dropped: canonical spelling"
 	export RESPONSE_FILE="content-length-canonical.response"
 	export EXPECTED="\

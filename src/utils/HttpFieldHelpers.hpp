@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/27 21:40:00 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/27 21:22:42 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 21:29:03 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,9 @@ class HttpFieldHelpers
 {
 public:
 	static bool getWhetherFieldNameIsValid(const std::string &fieldName);
+
+private:
+	static const std::string TOKEN_SYMBOLS;
 };
 
 #endif

@@ -55,7 +55,7 @@ HttpStatusCode HttpResponse::getStatusCode(void) const
 	return statusCode;
 }
 
-const HttpResponse::t_headers &HttpResponse::getHeaders(void) const
+const t_http_headers &HttpResponse::getHeaders(void) const
 {
 	return headers;
 }

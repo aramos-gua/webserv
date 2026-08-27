@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 19:18:29 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 21:30:17 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,15 +21,10 @@
 #include "HttpMethodHelpers.hpp"
 #include "HttpRequestParser.hpp"
 #include "HttpStatusCode.hpp"
+#include "HttpSyntax.hpp"
 #include "HttpVersionHelpers.hpp"
 #include "StringHelpers.hpp"
 #include "TransferEncodingHelpers.hpp"
-
-// NOLINTBEGIN(bugprone-throwing-static-initialization)
-
-const std::string HttpRequestParser::TERMINATOR = "\r\n";
-
-// NOLINTEND(bugprone-throwing-static-initialization)
 
 HttpRequestParser::HttpRequestParser(std::size_t maxBodySize)
 	: state(PARSE_REQUEST_LINE), errorStatusCode(NO_STATUS_CODE),
@@ -197,7 +192,7 @@ bool HttpRequestParser::readLine(std::size_t maxLength,
                                  HttpStatusCode overflowStatusCode,
                                  std::string &line)
 {
-	std::size_t terminatorPos = buffer.find(TERMINATOR);
+	std::size_t terminatorPos = buffer.find(HttpSyntax::CRLF);
 	if (getMinimumConfirmedLineLength(buffer, terminatorPos) > maxLength)
 	{
 		return fail(overflowStatusCode);
@@ -207,7 +202,7 @@ bool HttpRequestParser::readLine(std::size_t maxLength,
 		return false;
 	}
 	line = buffer.substr(0, terminatorPos);
-	buffer.erase(0, terminatorPos + TERMINATOR.length());
+	buffer.erase(0, terminatorPos + HttpSyntax::CRLF.length());
 	return true;
 }
 
@@ -284,7 +279,7 @@ bool HttpRequestParser::parseHeaders(void)
 		// value included, since it names no authority. HTTP/1.0 predates
 		// virtual hosting and carries neither requirement, so the check is
 		// deliberately version-specific.
-		HttpRequest::t_headers::const_iterator hostField =
+		t_http_headers::const_iterator hostField =
 			request.getHeaders().find("host");
 		if (request.getVersion() == HTTP_1_1 &&
 		    (hostField == request.getHeaders().end() ||
@@ -324,9 +319,9 @@ bool HttpRequestParser::parseHeaders(void)
 
 bool HttpRequestParser::startBody(void)
 {
-	HttpRequest::t_headers::const_iterator transferEncodingField =
+	t_http_headers::const_iterator transferEncodingField =
 		request.getHeaders().find("transfer-encoding");
-	HttpRequest::t_headers::const_iterator contentLengthField =
+	t_http_headers::const_iterator contentLengthField =
 		request.getHeaders().find("content-length");
 
 	if (transferEncodingField != request.getHeaders().end())
@@ -414,7 +409,7 @@ bool HttpRequestParser::parseChunkSize(void)
 		return fail(CONTENT_TOO_LARGE);
 	}
 	if (chunkBytesNeeded >
-	    std::numeric_limits<std::size_t>::max() - TERMINATOR.length())
+	    std::numeric_limits<std::size_t>::max() - HttpSyntax::CRLF.length())
 	{
 		return fail(CONTENT_TOO_LARGE);
 	}
@@ -430,7 +425,8 @@ bool HttpRequestParser::parseChunkData(void)
 	{
 		return false;
 	}
-	if (buffer.compare(chunkBytesNeeded, TERMINATOR.length(), TERMINATOR) != 0)
+	if (buffer.compare(chunkBytesNeeded, HttpSyntax::CRLF.length(),
+	                   HttpSyntax::CRLF) != 0)
 	{
 		return fail(BAD_REQUEST);
 	}

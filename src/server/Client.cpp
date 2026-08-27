@@ -134,7 +134,7 @@ void Client::handleRequest(void)
 	const HttpRequest &request = requestParser.getRequest();
 	std::string hostHeader;
 
-	HttpRequest::t_headers::const_iterator hostIterator =
+	t_http_headers::const_iterator hostIterator =
 		request.getHeaders().find("host");
 	if (hostIterator != request.getHeaders().end())
 	{

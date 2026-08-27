@@ -70,7 +70,7 @@ static void printRequest(const HttpRequest &request)
 					 request.getVersion())
 			  << std::endl;
 	std::cout << "HEADERS:" << std::endl;
-	for (HttpRequest::t_headers::const_iterator headerIterator =
+	for (t_http_headers::const_iterator headerIterator =
 	         request.getHeaders().begin();
 	     headerIterator != request.getHeaders().end(); ++headerIterator)
 	{

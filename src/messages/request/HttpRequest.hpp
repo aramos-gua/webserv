@@ -23,8 +23,6 @@
 class HttpRequest
 {
 public:
-	typedef t_http_headers t_headers;
-
 	HttpRequest(void);
 	HttpRequest(const HttpRequest &other);
 	HttpRequest &operator=(const HttpRequest &other);
@@ -33,7 +31,7 @@ public:
 	HttpMethod getMethod(void) const;
 	const std::string &getPath(void) const;
 	HttpVersion getVersion(void) const;
-	const t_headers &getHeaders(void) const;
+	const t_http_headers &getHeaders(void) const;
 	const std::string &getBody(void) const;
 
 	void setMethod(HttpMethod method);
@@ -49,7 +47,7 @@ private:
 	HttpMethod method;
 	std::string path;
 	HttpVersion version;
-	t_headers headers;
+	t_http_headers headers;
 	std::string body;
 };
 

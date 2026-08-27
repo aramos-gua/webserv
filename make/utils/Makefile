@@ -22,8 +22,10 @@ MAIN_DIR :=				$(REPO_DIR)/main
 TEST_DIR :=				$(REPO_DIR)/test
 MAKE_DIR :=				$(REPO_DIR)/make
 
-SRCS_BASE :=			ConfigTypeHelpers.cpp \
+SRCS_BASE :=			CaseInsensitiveComparator.cpp \
+						ConfigTypeHelpers.cpp \
 						HttpFieldHelpers.cpp \
+						HttpSyntax.cpp \
 						HttpMethodHelpers.cpp \
 						HttpStatusCodeHelpers.cpp \
 						HttpVersionHelpers.cpp \

@@ -58,7 +58,6 @@ private:
 		PARSE_ERROR
 	};
 
-	static const std::string TERMINATOR;
 	static const std::size_t MAX_LINE_LENGTH = 8192;
 	static const std::size_t MAX_HEADER_COUNT = 100;
 

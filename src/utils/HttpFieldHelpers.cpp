@@ -15,10 +15,14 @@
 
 #include "HttpFieldHelpers.hpp"
 
+// NOLINTBEGIN(bugprone-throwing-static-initialization)
+
+const std::string HttpFieldHelpers::TOKEN_SYMBOLS = "!#$%&'*+-.^_`|~";
+
+// NOLINTEND(bugprone-throwing-static-initialization)
+
 bool HttpFieldHelpers::getWhetherFieldNameIsValid(const std::string &fieldName)
 {
-	static const std::string TOKEN_SYMBOLS = "!#$%&'*+-.^_`|~";
-
 	if (fieldName.empty())
 	{
 		return false;

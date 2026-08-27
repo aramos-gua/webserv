@@ -1,24 +1,25 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HttpHeaders.hpp                                    :+:      :+:    :+:   */
+/*   CaseInsensitiveComparator.hpp                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/08/27 21:40:00 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/27 21:28:07 by emflynn          ###   ########.fr       */
+/*   Created: 2026/08/27 21:55:00 by emflynn           #+#    #+#             */
+/*   Updated: 2026/08/27 21:55:00 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef HTTP_HEADERS_HPP
-#define HTTP_HEADERS_HPP
+#ifndef CASE_INSENSITIVE_COMPARATOR_HPP
+#define CASE_INSENSITIVE_COMPARATOR_HPP
 
-#include <map>
 #include <string>
 
-#include "CaseInsensitiveComparator.hpp"
-
-typedef std::map<std::string, std::string, CaseInsensitiveComparator>
-	t_http_headers;
+struct CaseInsensitiveComparator
+{
+public:
+	bool operator()(const std::string &string1,
+	                const std::string &string2) const;
+};
 
 #endif
