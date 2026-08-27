@@ -13,11 +13,30 @@
 #include <cctype>
 #include <cstdlib>
 #include <limits>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 
 #include "HttpRequestParser.hpp"
 #include "HttpStatusCode.hpp"
+
+// NOLINTBEGIN(bugprone-throwing-static-initialization)
+
+static const std::string SINGLE_OCCURRENCE_FIELD_NAME_ARRAY[] = {
+	"authorization", "content-length", "content-type", "cookie",  "date",
+	"from",          "host",           "origin",       "referer", "user-agent",
+};
+
+// Field names that may appear only once. Repeating any of these is either a
+// framing question with no safe answer (host, content-length) or produces a
+// value that comma-joining would corrupt rather than combine — user-agent
+// separates its product tokens with spaces, and cookie with semicolons.
+static const std::set<std::string> SINGLE_OCCURRENCE_FIELD_NAMES(
+	SINGLE_OCCURRENCE_FIELD_NAME_ARRAY,
+	SINGLE_OCCURRENCE_FIELD_NAME_ARRAY +
+		(sizeof(SINGLE_OCCURRENCE_FIELD_NAME_ARRAY) / sizeof(std::string)));
+
+// NOLINTEND(bugprone-throwing-static-initialization)
 
 /* ************************************************************************** */
 /*                              CONSTRUCTOR                                   */
@@ -279,13 +298,22 @@ bool HttpRequestParser::parseHeaders(void)
 		key[i] = static_cast<char>(tolower(static_cast<unsigned char>(key[i])));
 	}
 	std::string val = trim(line.substr(sep + 1));
-	if (key == "content-length" && request.headers.count(key))
+	std::map<std::string, std::string>::iterator existingField =
+		request.headers.find(key);
+	if (existingField == request.headers.end())
+	{
+		request.headers[key] = val;
+		return true;
+	}
+	if (SINGLE_OCCURRENCE_FIELD_NAMES.count(key))
 	{
 		state = PARSE_ERROR;
 		errorStatusCode = BAD_REQUEST;
 		return false;
 	}
-	request.headers[key] = val;
+	// RFC 9110: repeating a list-valued field means the same as sending one
+	// field line whose values are joined, in order, by commas.
+	existingField->second += ", " + val;
 	return true;
 }
 

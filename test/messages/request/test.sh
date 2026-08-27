@@ -165,6 +165,64 @@ HEADERS:
 BODY: 0 bytes"
 	run_request_test
 
+	# Repeating a list-valued field means the same as one field line with the
+	# values joined by commas, in the order they arrived.
+	export TEST_NAME="Repeated list field is joined in order"
+	export REQUEST_FILE="duplicate-list-field.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: GET
+PATH: /
+VERSION: HTTP/1.1
+HEADERS:
+  accept: \"text/html, application/json, text/plain\"
+  host: \"example.com\"
+BODY: 0 bytes"
+	run_request_test
+
+	export TEST_NAME="Repeated list field whose values already hold commas"
+	export REQUEST_FILE="duplicate-list-field-with-commas.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: GET
+PATH: /
+VERSION: HTTP/1.1
+HEADERS:
+  accept-encoding: \"gzip, deflate, br\"
+  host: \"example.com\"
+BODY: 0 bytes"
+	run_request_test
+
+	# Repeating a list field keeps both values rather than deduplicating them:
+	# for X-Forwarded-For the same address twice is real information.
+	export TEST_NAME="Repeated list field with identical values is kept twice"
+	export REQUEST_FILE="duplicate-list-field-identical.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: GET
+PATH: /
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"abc.com\"
+  x-forwarded-for: \"10.0.0.1, 10.0.0.1\"
+BODY: 0 bytes"
+	run_request_test
+
+	# HTTP/1.0 predates virtual hosting, so a missing Host is fine there. This
+	# is the negative control for the HTTP/1.1 requirement below.
+	export TEST_NAME="No Host on HTTP/1.0 is accepted"
+	export REQUEST_FILE="missing-host-http-1-0.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: GET
+PATH: /
+VERSION: HTTP/1.0
+HEADERS:
+  accept: \"*/*\"
+  user-agent: \"curl\"
+BODY: 0 bytes"
+	run_request_test
+
 	# Every unusual character that RFC 9110 does allow in a field name, to
 	# prove the token check has not over-rejected. The backtick and dollar are
 	# escaped for the shell, not because the parser cares.
@@ -301,6 +359,69 @@ STATUS: 400 Bad Request"
 
 	export TEST_NAME="Duplicate Content-Length"
 	export REQUEST_FILE="duplicate-content-length.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Duplicate Host"
+	export REQUEST_FILE="duplicate-host.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Duplicate User-Agent, whose tokens commas would corrupt"
+	export REQUEST_FILE="duplicate-user-agent.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Duplicate Cookie, whose values are semicolon-separated"
+	export REQUEST_FILE="duplicate-cookie.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Duplicate Authorization"
+	export REQUEST_FILE="duplicate-authorization.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Duplicate Date"
+	export REQUEST_FILE="duplicate-date.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Duplicate From"
+	export REQUEST_FILE="duplicate-from.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Duplicate Origin"
+	export REQUEST_FILE="duplicate-origin.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Duplicate Referer"
+	export REQUEST_FILE="duplicate-referer.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Duplicate Content-Type"
+	export REQUEST_FILE="duplicate-content-type.http"
 	export EXPECTED="\
 RESULT: ERROR
 STATUS: 400 Bad Request"

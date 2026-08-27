@@ -1,4 +1,5 @@
 GET / HTTP/1.1
+Host: example.com
 X-Header-0: value
 X-Header-1: value
 X-Header-2: value

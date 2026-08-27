@@ -1,0 +1,5 @@
+GET / HTTP/1.1
+Host: example.com
+Date: Wed, 26 Aug 2026 10:00:00 GMT
+Date: Thu, 27 Aug 2026 11:30:00 GMT
+

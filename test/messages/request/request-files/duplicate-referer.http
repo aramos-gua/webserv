@@ -1,0 +1,5 @@
+GET / HTTP/1.1
+Host: example.com
+Referer: https://example.com/one
+Referer: https://example.com/two
+
