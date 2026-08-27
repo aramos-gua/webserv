@@ -686,17 +686,11 @@ void ConfigParser::handleListen(AConfig &config)
 void ConfigParser::handleLocation(AConfig &config)
 {
 	std::string firstWord = expectWord();
+	std::string modifier;
 	std::string path;
-	bool isExact = false;
-	bool isSuffix = false;
-	if (firstWord == "=")
+	if (firstWord == "=" || firstWord == "~$" || firstWord == "^~")
 	{
-		isExact = true;
-		path = expectWord();
-	}
-	else if (firstWord == "~$")
-	{
-		isSuffix = true;
+		modifier = firstWord;
 		path = expectWord();
 	}
 	else
@@ -707,13 +701,17 @@ void ConfigParser::handleLocation(AConfig &config)
 	LocationConfig locationConfig;
 	parseDirectives(locationConfig);
 	expectRightBrace();
-	if (isExact)
+	if (modifier == "=")
 	{
 		config.setLocationConfigForExactPath(path, locationConfig);
 	}
-	else if (isSuffix)
+	else if (modifier == "~$")
 	{
 		config.setLocationConfigForPathSuffix(path, locationConfig);
+	}
+	else if (modifier == "^~")
+	{
+		config.setLocationConfigForPriorityPathPrefix(path, locationConfig);
 	}
 	else
 	{

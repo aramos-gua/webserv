@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 02:54:58 by emflynn           #+#    #+#             */
-/*   Updated: 2026/08/26 02:20:51 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 10:53:33 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,22 +55,17 @@ AConfig::~AConfig(void)
 	tearDown();
 }
 
-AConfig *AConfig::getParentConfig(void)
-{
-	return parentConfig;
-}
-
 void AConfig::setParentConfig(AConfig *parentConfig)
 {
 	this->parentConfig = parentConfig;
 }
 
-bool AConfig::getWhetherShouldRunAsDaemonSet(void) const
+bool AConfig::shouldRunAsDaemonSettingResolves(void) const
 {
 	return shouldRunAsDaemon.checkIfSet();
 }
 
-bool AConfig::getWhetherShouldRunAsDaemon(void) const
+bool AConfig::resolveShouldRunAsDaemonSetting(void) const
 {
 	return shouldRunAsDaemon.get();
 }
@@ -81,18 +76,18 @@ void AConfig::setWhetherShouldRunAsDaemon(bool shouldRunAsDaemon)
 	static const ConfigType ALLOWED_TYPES[] = {MAIN};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherShouldRunAsDaemonSet());
+	throwIfAlreadySet(this->shouldRunAsDaemon.checkIfSet());
 	this->shouldRunAsDaemon.set(shouldRunAsDaemon);
 }
 
-bool AConfig::getWhetherErrorLogFilePathSet(void) const
+bool AConfig::errorLogFilePathSettingResolves(void) const
 {
-	return errorLogFilePath.checkIfSet();
+	return settingResolvesAtThisConfigLevelOrAbove(&AConfig::errorLogFilePath);
 }
 
-const std::string &AConfig::getErrorLogFilePath(void) const
+const std::string &AConfig::resolveErrorLogFilePathSetting(void) const
 {
-	return errorLogFilePath.get();
+	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::errorLogFilePath);
 }
 
 void AConfig::setErrorLogFilePath(const std::string &errorLogFilePath)
@@ -101,17 +96,21 @@ void AConfig::setErrorLogFilePath(const std::string &errorLogFilePath)
 	static const ConfigType ALLOWED_TYPES[] = {MAIN, HTTP, SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherErrorLogFilePathSet());
+	throwIfAlreadySet(this->errorLogFilePath.checkIfSet());
 	this->errorLogFilePath.set(errorLogFilePath);
 }
 
-bool AConfig::getWhetherEventsConfigSet(void) const
+bool AConfig::eventsConfigSettingResolves(void) const
 {
 	return eventsConfig != NULL;
 }
 
-const EventsConfig &AConfig::getEventsConfig(void) const
+const EventsConfig &AConfig::resolveEventsConfigSetting(void) const
 {
+	if (eventsConfig == NULL)
+	{
+		throw SettingNotSetException("No \"events\" block set");
+	}
 	return *eventsConfig;
 }
 
@@ -121,17 +120,17 @@ void AConfig::setEventsConfig(const EventsConfig &eventsConfig)
 	static const ConfigType ALLOWED_TYPES[] = {MAIN};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherEventsConfigSet());
+	throwIfAlreadySet(this->eventsConfig != NULL);
 	this->eventsConfig = new EventsConfig(eventsConfig);
 	this->eventsConfig->setParentConfig(this);
 }
 
-bool AConfig::getWhetherWorkerUserSet(void) const
+bool AConfig::workerUserSettingResolves(void) const
 {
 	return workerUser.checkIfSet();
 }
 
-const std::string &AConfig::getWorkerUser(void) const
+const std::string &AConfig::resolveWorkerUserSetting(void) const
 {
 	return workerUser.get();
 }
@@ -142,16 +141,16 @@ void AConfig::setWorkerUser(const std::string &workerUser)
 	static const ConfigType ALLOWED_TYPES[] = {MAIN};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherWorkerUserSet());
+	throwIfAlreadySet(this->workerUser.checkIfSet());
 	this->workerUser.set(workerUser);
 }
 
-bool AConfig::getWhetherWorkerGroupSet(void) const
+bool AConfig::workerGroupSettingResolves(void) const
 {
 	return workerGroup.checkIfSet();
 }
 
-const std::string &AConfig::getWorkerGroup(void) const
+const std::string &AConfig::resolveWorkerGroupSetting(void) const
 {
 	return workerGroup.get();
 }
@@ -162,16 +161,16 @@ void AConfig::setWorkerGroup(const std::string &workerGroup)
 	static const ConfigType ALLOWED_TYPES[] = {MAIN};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherWorkerGroupSet());
+	throwIfAlreadySet(this->workerGroup.checkIfSet());
 	this->workerGroup.set(workerGroup);
 }
 
-bool AConfig::getWhetherWorkerMaxConnectionsSet(void) const
+bool AConfig::workerMaxConnectionsSettingResolves(void) const
 {
 	return workerMaxConnections.checkIfSet();
 }
 
-std::size_t AConfig::getWorkerMaxConnections(void) const
+std::size_t AConfig::resolveWorkerMaxConnectionsSetting(void) const
 {
 	return workerMaxConnections.get();
 }
@@ -182,16 +181,16 @@ void AConfig::setWorkerMaxConnections(std::size_t workerMaxConnections)
 	static const ConfigType ALLOWED_TYPES[] = {EVENTS};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherWorkerMaxConnectionsSet());
+	throwIfAlreadySet(this->workerMaxConnections.checkIfSet());
 	this->workerMaxConnections.set(workerMaxConnections);
 }
 
-bool AConfig::getWhetherWorkerProcessesSet(void) const
+bool AConfig::workerProcessesSettingResolves(void) const
 {
 	return workerProcesses.checkIfSet();
 }
 
-std::size_t AConfig::getWorkerProcesses(void) const
+std::size_t AConfig::resolveWorkerProcessesSetting(void) const
 {
 	return workerProcesses.get();
 }
@@ -202,16 +201,16 @@ void AConfig::setWorkerProcesses(std::size_t workerProcesses)
 	static const ConfigType ALLOWED_TYPES[] = {MAIN};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherWorkerProcessesSet());
+	throwIfAlreadySet(this->workerProcesses.checkIfSet());
 	this->workerProcesses.set(workerProcesses);
 }
 
-bool AConfig::getWhetherAliasSet(void) const
+bool AConfig::aliasSettingResolves(void) const
 {
 	return alias.checkIfSet();
 }
 
-const std::string &AConfig::getAlias(void) const
+const std::string &AConfig::resolveAliasSetting(void) const
 {
 	return alias.get();
 }
@@ -222,18 +221,18 @@ void AConfig::setAlias(const std::string &alias)
 	static const ConfigType ALLOWED_TYPES[] = {LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherAliasSet());
+	throwIfAlreadySet(this->alias.checkIfSet());
 	this->alias.set(alias);
 }
 
-bool AConfig::getWhetherClientMaxBodySizeSet(void) const
+bool AConfig::clientMaxBodySizeSettingResolves(void) const
 {
-	return clientMaxBodySize.checkIfSet();
+	return settingResolvesAtThisConfigLevelOrAbove(&AConfig::clientMaxBodySize);
 }
 
-std::size_t AConfig::getClientMaxBodySize(void) const
+std::size_t AConfig::resolveClientMaxBodySizeSetting(void) const
 {
-	return clientMaxBodySize.get();
+	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::clientMaxBodySize);
 }
 
 void AConfig::setClientMaxBodySize(std::size_t clientMaxBodySize)
@@ -242,18 +241,18 @@ void AConfig::setClientMaxBodySize(std::size_t clientMaxBodySize)
 	static const ConfigType ALLOWED_TYPES[] = {HTTP, SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherClientMaxBodySizeSet());
+	throwIfAlreadySet(this->clientMaxBodySize.checkIfSet());
 	this->clientMaxBodySize.set(clientMaxBodySize);
 }
 
-bool AConfig::getWhetherDefaultMimeTypeSet(void) const
+bool AConfig::defaultMimeTypeSettingResolves(void) const
 {
-	return defaultMimeType.checkIfSet();
+	return settingResolvesAtThisConfigLevelOrAbove(&AConfig::defaultMimeType);
 }
 
-const std::string &AConfig::getDefaultMimeType(void) const
+const std::string &AConfig::resolveDefaultMimeTypeSetting(void) const
 {
-	return defaultMimeType.get();
+	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::defaultMimeType);
 }
 
 void AConfig::setDefaultMimeType(const std::string &defaultMimeType)
@@ -262,40 +261,68 @@ void AConfig::setDefaultMimeType(const std::string &defaultMimeType)
 	static const ConfigType ALLOWED_TYPES[] = {HTTP, SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherDefaultMimeTypeSet());
+	throwIfAlreadySet(this->defaultMimeType.checkIfSet());
 	this->defaultMimeType.set(defaultMimeType);
 }
 
-const ErrorPageValue *AConfig::getErrorPageForHttpStatusCode(
-	HttpStatusCode httpStatusCode) const
+bool AConfig::errorPageSettingResolvesForHttpStatusCode(
+	HttpStatusCode statusCode) const
 {
-	std::map<HttpStatusCode, ErrorPageValue>::const_iterator iterator =
-		errorPages.find(httpStatusCode);
-	if (iterator == errorPages.end())
+	return findErrorPageForHttpStatusCode(statusCode) != NULL;
+}
+
+const ErrorPageValue &AConfig::resolveErrorPageSettingForHttpStatusCode(
+	HttpStatusCode statusCode) const
+{
+	const ErrorPageValue *errorPage =
+		findErrorPageForHttpStatusCode(statusCode);
+	if (errorPage == NULL)
 	{
-		return NULL;
+		throw SettingNotSetException(
+			StringBase() << "No error page configured for status code "
+						 << statusCode);
 	}
-	return &iterator->second;
+	return *errorPage;
+}
+
+const ErrorPageValue *AConfig::findErrorPageForHttpStatusCode(
+	HttpStatusCode statusCode) const
+{
+	for (const AConfig *config = this; config != NULL;
+	     config = config->parentConfig)
+	{
+		std::map<HttpStatusCode, ErrorPageValue>::const_iterator iterator =
+			config->errorPages.find(statusCode);
+		if (iterator != config->errorPages.end())
+		{
+			return &iterator->second;
+		}
+	}
+	return NULL;
 }
 
 void AConfig::setErrorPageForHttpStatusCode(
-	HttpStatusCode httpStatusCode, const ErrorPageValue &errorPageValue)
+	HttpStatusCode statusCode, const ErrorPageValue &errorPageValue)
 {
 	throwIfFrozen();
 	static const ConfigType ALLOWED_TYPES[] = {HTTP, SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(errorPages.find(httpStatusCode) != errorPages.end());
-	errorPages[httpStatusCode] = errorPageValue;
+	throwIfAlreadySet(errorPages.find(statusCode) != errorPages.end());
+	errorPages[statusCode] = errorPageValue;
 }
 
-bool AConfig::getWhetherHttpConfigSet(void) const
+bool AConfig::httpConfigSettingResolves(void) const
 {
 	return httpConfig != NULL;
 }
 
-const HttpConfig &AConfig::getHttpConfig(void) const
+const HttpConfig &AConfig::resolveHttpConfigSetting(void) const
 {
+	if (httpConfig == NULL)
+	{
+		throw SettingNotSetException("No \"http\" block set");
+	}
 	return *httpConfig;
 }
 
@@ -305,17 +332,17 @@ void AConfig::setHttpConfig(const HttpConfig &httpConfig)
 	static const ConfigType ALLOWED_TYPES[] = {MAIN};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherHttpConfigSet());
+	throwIfAlreadySet(this->httpConfig != NULL);
 	this->httpConfig = new HttpConfig(httpConfig);
 	this->httpConfig->setParentConfig(this);
 }
 
-bool AConfig::getWhetherIsInternalSet(void) const
+bool AConfig::isInternalSettingResolves(void) const
 {
 	return isInternal.checkIfSet();
 }
 
-bool AConfig::getWhetherIsInternal(void) const
+bool AConfig::resolveIsInternalSetting(void) const
 {
 	return isInternal.get();
 }
@@ -326,29 +353,49 @@ void AConfig::setWhetherIsInternal(bool isInternal)
 	static const ConfigType ALLOWED_TYPES[] = {LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherIsInternalSet());
+	throwIfAlreadySet(this->isInternal.checkIfSet());
 	this->isInternal.set(isInternal);
 }
 
-bool AConfig::getWhetherLimitExceptSet(void) const
+bool AConfig::limitExceptConfigSettingResolvesForMethod(HttpMethod method) const
 {
-	return limitExcept.checkIfSet();
+	return findLimitExceptConfigForMethod(method) != NULL;
 }
 
-const LimitExceptConfig *AConfig::getLimitExceptConfigForMethod(
+const LimitExceptConfig &AConfig::resolveLimitExceptConfigSettingForMethod(
 	HttpMethod method) const
 {
-	if (!getWhetherLimitExceptSet())
+	const LimitExceptConfig *limitExceptConfig =
+		findLimitExceptConfigForMethod(method);
+	if (limitExceptConfig == NULL)
+	{
+		if (!limitExcept.checkIfSet())
+		{
+			throw SettingNotSetException("No limitExcept config set at this "
+			                             "level");
+		}
+		throw SettingNotSetException(StringBase()
+		                             << "Method " << method
+		                             << " unaffected by limitExcept config");
+	}
+	return *limitExceptConfig;
+}
+
+const LimitExceptConfig *AConfig::findLimitExceptConfigForMethod(
+	HttpMethod method) const
+{
+	if (!limitExcept.checkIfSet())
 	{
 		return NULL;
 	}
+	const LimitExceptValue &limitExceptValue = limitExcept.get();
 	const std::set<HttpMethod> &exemptMethods =
-		limitExcept.get().getExemptMethods();
+		limitExceptValue.getExemptMethods();
 	if (exemptMethods.find(method) != exemptMethods.end())
 	{
 		return NULL;
 	}
-	return &limitExcept.get().getLimitExceptConfig();
+	return &limitExceptValue.getLimitExceptConfig();
 }
 
 void AConfig::setLimitExcept(const LimitExceptValue &limitExcept)
@@ -357,11 +404,73 @@ void AConfig::setLimitExcept(const LimitExceptValue &limitExcept)
 	static const ConfigType ALLOWED_TYPES[] = {LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherLimitExceptSet());
+	throwIfAlreadySet(this->limitExcept.checkIfSet());
 	this->limitExcept.set(limitExcept);
 }
 
-const LocationConfig *AConfig::getExactLocationConfigForPath(
+static bool pathPartAlreadyPresent(
+	const std::multimap<std::string, LocationConfig *,
+                        LongestStringFirstComparator> &locationConfigs,
+	const std::string &pathPart)
+{
+	for (std::multimap<std::string, LocationConfig *,
+	                   LongestStringFirstComparator>::const_iterator iterator =
+	         locationConfigs.lower_bound(pathPart);
+	     iterator != locationConfigs.upper_bound(pathPart); ++iterator)
+	{
+		if (pathPart == iterator->first)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AConfig::locationConfigSettingResolvesForPath(
+	const std::string &path) const
+{
+	return findLocationConfigForPath(path) != NULL;
+}
+
+const LocationConfig &AConfig::resolveLocationConfigSettingForPath(
+	const std::string &path) const
+{
+	const LocationConfig *locationConfig = findLocationConfigForPath(path);
+	if (locationConfig == NULL)
+	{
+		throw SettingNotSetException(
+			StringBase() << "No matching location config setting for path "
+						 << path);
+	}
+	return *locationConfig;
+}
+
+const LocationConfig *AConfig::findLocationConfigForPath(
+	const std::string &path) const
+{
+	const LocationConfig *locationConfig = findExactLocationConfigForPath(path);
+	if (locationConfig == NULL)
+	{
+		locationConfig = findPriorityPrefixLocationConfigForPath(path);
+	}
+	if (locationConfig == NULL)
+	{
+		locationConfig = findSuffixLocationConfigForPath(path);
+	}
+	if (locationConfig == NULL)
+	{
+		locationConfig = findPrefixLocationConfigForPath(path);
+	}
+	if (locationConfig == NULL)
+	{
+		return NULL;
+	}
+	const LocationConfig *nestedLocationConfig =
+		locationConfig->findLocationConfigForPath(path);
+	return nestedLocationConfig != NULL ? nestedLocationConfig : locationConfig;
+}
+
+const LocationConfig *AConfig::findExactLocationConfigForPath(
 	const std::string &path) const
 {
 	std::map<std::string, LocationConfig *>::const_iterator iterator =
@@ -376,16 +485,23 @@ const LocationConfig *AConfig::getExactLocationConfigForPath(
 void AConfig::setLocationConfigForExactPath(
 	const std::string &exactPath, const LocationConfig &locationConfig)
 {
+	throwIfFrozen();
 	static const ConfigType ALLOWED_TYPES[] = {SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(exactLocationConfigs.find(exactPath) !=
-	                  exactLocationConfigs.end());
-	exactLocationConfigs[exactPath] = new LocationConfig(locationConfig);
-	exactLocationConfigs[exactPath]->setParentConfig(this);
+	std::pair<std::map<std::string, LocationConfig *>::iterator, bool>
+		insertionResult = exactLocationConfigs.insert(
+			std::pair<std::string, LocationConfig *>(exactPath, NULL));
+	bool wasNewlyInserted = insertionResult.second;
+	throwIfAlreadySet(!wasNewlyInserted);
+	std::map<std::string, LocationConfig *>::iterator
+		newlyInsertedLocationConfigIterator = insertionResult.first;
+	newlyInsertedLocationConfigIterator->second =
+		new LocationConfig(locationConfig);
+	newlyInsertedLocationConfigIterator->second->setParentConfig(this);
 }
 
-const LocationConfig *AConfig::getPrefixLocationConfigForPath(
+const LocationConfig *AConfig::findPrefixLocationConfigForPath(
 	const std::string &path) const
 {
 	for (std::multimap<std::string, LocationConfig *,
@@ -404,26 +520,52 @@ const LocationConfig *AConfig::getPrefixLocationConfigForPath(
 void AConfig::setLocationConfigForPathPrefix(
 	const std::string &pathPrefix, const LocationConfig &locationConfig)
 {
+	throwIfFrozen();
 	static const ConfigType ALLOWED_TYPES[] = {SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	for (std::multimap<std::string, LocationConfig *,
-	                   LongestStringFirstComparator>::iterator iterator =
-	         prefixLocationConfigs.lower_bound(pathPrefix);
-	     iterator != prefixLocationConfigs.upper_bound(pathPrefix); ++iterator)
-	{
-		if (pathPrefix == iterator->first)
-		{
-			throwIfAlreadySet(true);
-		}
-	}
+	throwIfAlreadySet(
+		pathPartAlreadyPresent(prefixLocationConfigs, pathPrefix) ||
+		pathPartAlreadyPresent(priorityPrefixLocationConfigs, pathPrefix));
 	prefixLocationConfigs
 		.insert(std::pair<std::string, LocationConfig *>(
 			pathPrefix, new LocationConfig(locationConfig)))
 		->second->setParentConfig(this);
 }
 
-const LocationConfig *AConfig::getSuffixLocationConfigForPath(
+const LocationConfig *AConfig::findPriorityPrefixLocationConfigForPath(
+	const std::string &path) const
+{
+	for (std::multimap<std::string, LocationConfig *,
+	                   LongestStringFirstComparator>::const_iterator iterator =
+	         priorityPrefixLocationConfigs.lower_bound(path);
+	     iterator != priorityPrefixLocationConfigs.end(); ++iterator)
+	{
+		if (!path.compare(0, iterator->first.size(), iterator->first))
+		{
+			return iterator->second;
+		}
+	}
+	return NULL;
+}
+
+void AConfig::setLocationConfigForPriorityPathPrefix(
+	const std::string &pathPrefix, const LocationConfig &locationConfig)
+{
+	throwIfFrozen();
+	static const ConfigType ALLOWED_TYPES[] = {SERVER, LOCATION};
+	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
+	                                                    sizeof(ConfigType));
+	throwIfAlreadySet(
+		pathPartAlreadyPresent(priorityPrefixLocationConfigs, pathPrefix) ||
+		pathPartAlreadyPresent(prefixLocationConfigs, pathPrefix));
+	priorityPrefixLocationConfigs
+		.insert(std::pair<std::string, LocationConfig *>(
+			pathPrefix, new LocationConfig(locationConfig)))
+		->second->setParentConfig(this);
+}
+
+const LocationConfig *AConfig::findSuffixLocationConfigForPath(
 	const std::string &path) const
 {
 	for (std::multimap<std::string, LocationConfig *,
@@ -445,33 +587,26 @@ const LocationConfig *AConfig::getSuffixLocationConfigForPath(
 void AConfig::setLocationConfigForPathSuffix(
 	const std::string &pathSuffix, const LocationConfig &locationConfig)
 {
+	throwIfFrozen();
 	static const ConfigType ALLOWED_TYPES[] = {SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	for (std::multimap<std::string, LocationConfig *,
-	                   LongestStringFirstComparator>::iterator iterator =
-	         suffixLocationConfigs.lower_bound(pathSuffix);
-	     iterator != suffixLocationConfigs.upper_bound(pathSuffix); ++iterator)
-	{
-		if (pathSuffix == iterator->first)
-		{
-			throwIfAlreadySet(true);
-		}
-	}
+	throwIfAlreadySet(
+		pathPartAlreadyPresent(suffixLocationConfigs, pathSuffix));
 	suffixLocationConfigs
 		.insert(std::pair<std::string, LocationConfig *>(
 			pathSuffix, new LocationConfig(locationConfig)))
 		->second->setParentConfig(this);
 }
 
-bool AConfig::getWhetherRootSet(void) const
+bool AConfig::rootSettingResolves(void) const
 {
-	return root.checkIfSet();
+	return settingResolvesAtThisConfigLevelOrAbove(&AConfig::root);
 }
 
-const std::string &AConfig::getRoot(void) const
+const std::string &AConfig::resolveRootSetting(void) const
 {
-	return root.get();
+	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::root);
 }
 
 void AConfig::setRoot(const std::string &root)
@@ -480,7 +615,7 @@ void AConfig::setRoot(const std::string &root)
 	static const ConfigType ALLOWED_TYPES[] = {HTTP, SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherRootSet());
+	throwIfAlreadySet(this->root.checkIfSet());
 	this->root.set(root);
 }
 
@@ -511,24 +646,26 @@ void AConfig::setPendingServerNames(const std::vector<std::string> &serverNames)
 	static const ConfigType ALLOWED_TYPES[] = {SERVER};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(pendingServerNames.checkIfSet());
+	throwIfAlreadySet(this->pendingServerNames.checkIfSet());
 	pendingServerNames.set(serverNames);
 }
 
 void AConfig::registerAsServerIn(AConfig &parentConfig)
 {
+	throwIfFrozen();
 	static const ConfigType ALLOWED_TYPES[] = {SERVER};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
 	parentConfig.setServerConfig(*dynamic_cast<ServerConfig *>(this));
 }
 
-bool AConfig::getWhetherAnyServerConfigsSet(void) const
+bool AConfig::anyServerConfigSettingResolves(void) const
 {
 	return !serverConfigs.empty();
 }
 
-std::vector<std::string> AConfig::getServerConfigAddressPortPairs(void) const
+std::vector<std::string> AConfig::extractAllServerConfigSettingAddressPortPairs(
+	void) const
 {
 	std::vector<std::string> addressPortPairs;
 	for (t_server_configs_by_address_port_pair::const_iterator iterator =
@@ -540,16 +677,41 @@ std::vector<std::string> AConfig::getServerConfigAddressPortPairs(void) const
 	return addressPortPairs;
 }
 
-const ServerConfig &AConfig::getServerConfig(
+bool AConfig::serverConfigSettingResolvesForRequestTarget(
+	const std::string &addressPortPair, const std::string &serverName) const
+{
+	return findServerConfigForRequestTarget(addressPortPair, serverName) !=
+	       NULL;
+}
+
+const ServerConfig &AConfig::resolveServerConfigSettingForRequestTarget(
+	const std::string &addressPortPair, const std::string &serverName) const
+{
+	const ServerConfig *serverConfig =
+		findServerConfigForRequestTarget(addressPortPair, serverName);
+	if (serverConfig == NULL)
+	{
+		if (serverConfigs.find(addressPortPair) == serverConfigs.end())
+		{
+			throw SettingNotSetException(StringBase()
+			                             << "Nothing configured to listen on "
+			                             << addressPortPair);
+		}
+		throw SettingNotSetException(
+			StringBase() << "No server configured for " << addressPortPair
+						 << " and server name \"" << serverName << "\"");
+	}
+	return *serverConfig;
+}
+
+const ServerConfig *AConfig::findServerConfigForRequestTarget(
 	const std::string &addressPortPair, const std::string &serverName) const
 {
 	t_server_configs_by_address_port_pair::const_iterator
 		addressPortPairIterator = serverConfigs.find(addressPortPair);
 	if (addressPortPairIterator == serverConfigs.end())
 	{
-		throw std::out_of_range(StringBase()
-		                        << "Nothing configured to listen on "
-		                        << addressPortPair);
+		return NULL;
 	}
 	const t_server_configs_by_server_name &serverConfigsForServerNames =
 		addressPortPairIterator->second;
@@ -566,15 +728,14 @@ const ServerConfig &AConfig::getServerConfig(
 	}
 	if (iterator == serverConfigsForServerNames.end())
 	{
-		throw std::out_of_range(
-			StringBase() << "No server configured for " << addressPortPair
-						 << " and server name \"" << serverName << "\"");
+		return NULL;
 	}
-	return *iterator->second;
+	return iterator->second;
 }
 
 void AConfig::setServerConfig(const ServerConfig &serverConfig)
 {
+	throwIfFrozen();
 	static const ConfigType ALLOWED_TYPES[] = {HTTP};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
@@ -604,14 +765,14 @@ void AConfig::setServerConfig(const ServerConfig &serverConfig)
 	}
 }
 
-bool AConfig::getWhetherTryFilesSet(void) const
+bool AConfig::tryFilesSettingResolves(void) const
 {
-	return tryFiles.checkIfSet();
+	return settingResolvesAtThisConfigLevelOrAbove(&AConfig::tryFiles);
 }
 
-const TryFilesValue &AConfig::getTryFiles(void) const
+const TryFilesValue &AConfig::resolveTryFilesSetting(void) const
 {
-	return tryFiles.get();
+	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::tryFiles);
 }
 
 void AConfig::setTryFiles(const TryFilesValue &tryFiles)
@@ -620,19 +781,21 @@ void AConfig::setTryFiles(const TryFilesValue &tryFiles)
 	static const ConfigType ALLOWED_TYPES[] = {SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherTryFilesSet());
+	throwIfAlreadySet(this->tryFiles.checkIfSet());
 	this->tryFiles.set(tryFiles);
 }
 
-bool AConfig::getWhetherMimeTypesForExtensionsSet(void) const
+bool AConfig::mimeTypesForExtensionsSettingResolves(void) const
 {
-	return mimeTypesForExtensions.checkIfSet();
+	return settingResolvesAtThisConfigLevelOrAbove(
+		&AConfig::mimeTypesForExtensions);
 }
 
-const std::map<std::string, std::string> &AConfig::getMimeTypesForExtensions(
-	void) const
+const std::map<std::string, std::string> &AConfig::
+	resolveMimeTypesForExtensionsSetting(void) const
 {
-	return mimeTypesForExtensions.get();
+	return resolveSettingAtThisConfigLevelOrAbove(
+		&AConfig::mimeTypesForExtensions);
 }
 
 void AConfig::setMimeTypesForExtensions(
@@ -642,11 +805,11 @@ void AConfig::setMimeTypesForExtensions(
 	static const ConfigType ALLOWED_TYPES[] = {HTTP, SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherMimeTypesForExtensionsSet());
+	throwIfAlreadySet(this->mimeTypesForExtensions.checkIfSet());
 	this->mimeTypesForExtensions.set(mimeTypesForExtensions);
 }
 
-AccessRule AConfig::getAccessRuleForIpAddress(
+AccessRule AConfig::resolveAccessRuleSettingForIpAddress(
 	const std::string &ipAddress) const
 {
 	for (std::multimap<std::string, AccessRule,
@@ -664,7 +827,7 @@ AccessRule AConfig::getAccessRuleForIpAddress(
 	}
 	if (parentConfig)
 	{
-		return parentConfig->getAccessRuleForIpAddress(ipAddress);
+		return parentConfig->resolveAccessRuleSettingForIpAddress(ipAddress);
 	}
 	return ALLOW;
 }
@@ -672,6 +835,7 @@ AccessRule AConfig::getAccessRuleForIpAddress(
 void AConfig::setAccessRuleForIpAddressAndMask(
 	const std::string &ipAddressAndMask, AccessRule accessRule)
 {
+	throwIfFrozen();
 	static const ConfigType ALLOWED_TYPES[] = {HTTP, SERVER, LOCATION,
 	                                           LIMIT_EXCEPT};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
@@ -704,14 +868,15 @@ void AConfig::setAccessRuleForIpAddressAndMask(
 		std::pair<std::string, AccessRule>(canonicalKey, accessRule));
 }
 
-bool AConfig::getWhetherShouldUseAutoindexSet(void) const
+bool AConfig::shouldUseAutoindexSettingResolves(void) const
 {
-	return shouldUseAutoindex.checkIfSet();
+	return settingResolvesAtThisConfigLevelOrAbove(
+		&AConfig::shouldUseAutoindex);
 }
 
-bool AConfig::getWhetherShouldUseAutoindex(void) const
+bool AConfig::resolveShouldUseAutoindexSetting(void) const
 {
-	return shouldUseAutoindex.get();
+	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::shouldUseAutoindex);
 }
 
 void AConfig::setWhetherShouldUseAutoindex(bool shouldUseAutoindex)
@@ -720,18 +885,18 @@ void AConfig::setWhetherShouldUseAutoindex(bool shouldUseAutoindex)
 	static const ConfigType ALLOWED_TYPES[] = {HTTP, SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherShouldUseAutoindexSet());
+	throwIfAlreadySet(this->shouldUseAutoindex.checkIfSet());
 	this->shouldUseAutoindex.set(shouldUseAutoindex);
 }
 
-bool AConfig::getWhetherIndexesSet(void) const
+bool AConfig::indexesSettingResolves(void) const
 {
-	return indexes.checkIfSet();
+	return settingResolvesAtThisConfigLevelOrAbove(&AConfig::indexes);
 }
 
-const std::vector<std::string> &AConfig::getIndexes(void) const
+const std::vector<std::string> &AConfig::resolveIndexesSetting(void) const
 {
-	return indexes.get();
+	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::indexes);
 }
 
 void AConfig::setIndexes(const std::vector<std::string> &indexes)
@@ -740,18 +905,18 @@ void AConfig::setIndexes(const std::vector<std::string> &indexes)
 	static const ConfigType ALLOWED_TYPES[] = {HTTP, SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherIndexesSet());
+	throwIfAlreadySet(this->indexes.checkIfSet());
 	this->indexes.set(indexes);
 }
 
-bool AConfig::getWhetherAccessLogFilePathSet(void) const
+bool AConfig::accessLogFilePathSettingResolves(void) const
 {
-	return accessLogFilePath.checkIfSet();
+	return settingResolvesAtThisConfigLevelOrAbove(&AConfig::accessLogFilePath);
 }
 
-const std::string &AConfig::getAccessLogFilePath(void) const
+const std::string &AConfig::resolveAccessLogFilePathSetting(void) const
 {
-	return accessLogFilePath.get();
+	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::accessLogFilePath);
 }
 
 void AConfig::setAccessLogFilePath(const std::string &accessLogFilePath)
@@ -761,18 +926,18 @@ void AConfig::setAccessLogFilePath(const std::string &accessLogFilePath)
 	                                           LIMIT_EXCEPT};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherAccessLogFilePathSet());
+	throwIfAlreadySet(this->accessLogFilePath.checkIfSet());
 	this->accessLogFilePath.set(accessLogFilePath);
 }
 
-bool AConfig::getWhetherReturnResponseSet(void) const
+bool AConfig::returnResponseSettingResolves(void) const
 {
-	return returnResponse.checkIfSet();
+	return settingResolvesAtThisConfigLevelOrAbove(&AConfig::returnResponse);
 }
 
-const ReturnResponseValue &AConfig::getReturnResponse(void) const
+const ReturnResponseValue &AConfig::resolveReturnResponseSetting(void) const
 {
-	return returnResponse.get();
+	return resolveSettingAtThisConfigLevelOrAbove(&AConfig::returnResponse);
 }
 
 void AConfig::setReturnResponse(const ReturnResponseValue &returnResponse)
@@ -781,7 +946,7 @@ void AConfig::setReturnResponse(const ReturnResponseValue &returnResponse)
 	static const ConfigType ALLOWED_TYPES[] = {SERVER, LOCATION};
 	throwIfNotSupportedForConfigType(ALLOWED_TYPES, sizeof(ALLOWED_TYPES) /
 	                                                    sizeof(ConfigType));
-	throwIfAlreadySet(getWhetherReturnResponseSet());
+	throwIfAlreadySet(this->returnResponse.checkIfSet());
 	this->returnResponse.set(returnResponse);
 }
 
@@ -812,6 +977,36 @@ void AConfig::throwIfNotSupportedForConfigType(
 		}
 	}
 	throw DirectiveNotSupportedForConfigTypeException();
+}
+
+template<typename TSetting>
+bool AConfig::settingResolvesAtThisConfigLevelOrAbove(
+	OverridableConfigSetting<TSetting> AConfig::*setting) const
+{
+	for (const AConfig *config = this; config != NULL;
+	     config = config->parentConfig)
+	{
+		if ((config->*setting).checkIfSet())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+template<typename TSetting>
+const TSetting &AConfig::resolveSettingAtThisConfigLevelOrAbove(
+	OverridableConfigSetting<TSetting> AConfig::*setting) const
+{
+	for (const AConfig *config = this; config != NULL;
+	     config = config->parentConfig)
+	{
+		if ((config->*setting).checkIfSet())
+		{
+			return (config->*setting).get();
+		}
+	}
+	throw SettingNotSetException();
 }
 
 void AConfig::setUpFrom(const AConfig &other)
@@ -869,6 +1064,16 @@ void AConfig::setUpFrom(const AConfig &other)
 	}
 	for (std::multimap<std::string, LocationConfig *,
 	                   LongestStringFirstComparator>::const_iterator iterator =
+	         other.priorityPrefixLocationConfigs.begin();
+	     iterator != other.priorityPrefixLocationConfigs.end(); ++iterator)
+	{
+		priorityPrefixLocationConfigs
+			.insert(std::pair<std::string, LocationConfig *>(
+				iterator->first, new LocationConfig(*iterator->second)))
+			->second->setParentConfig(this);
+	}
+	for (std::multimap<std::string, LocationConfig *,
+	                   LongestStringFirstComparator>::const_iterator iterator =
 	         other.suffixLocationConfigs.begin();
 	     iterator != other.suffixLocationConfigs.end(); ++iterator)
 	{
@@ -920,6 +1125,14 @@ void AConfig::tearDown(void)
 		delete iterator->second;
 	}
 	prefixLocationConfigs.clear();
+	for (std::multimap<std::string, LocationConfig *,
+	                   LongestStringFirstComparator>::iterator iterator =
+	         priorityPrefixLocationConfigs.begin();
+	     iterator != priorityPrefixLocationConfigs.end(); ++iterator)
+	{
+		delete iterator->second;
+	}
+	priorityPrefixLocationConfigs.clear();
 	for (std::multimap<std::string, LocationConfig *,
 	                   LongestStringFirstComparator>::iterator iterator =
 	         suffixLocationConfigs.begin();
@@ -998,6 +1211,17 @@ void AConfig::registerServerConfigForAddressPortPair(
 
 AConfig::ConfigFrozenException::ConfigFrozenException(void)
 	: std::logic_error("Cannot modify config once it has been frozen")
+{
+}
+
+AConfig::SettingNotSetException::SettingNotSetException(void)
+	: std::out_of_range("Cannot read a config setting that is set at no level")
+{
+}
+
+AConfig::SettingNotSetException::SettingNotSetException(
+	const std::string &message)
+	: std::out_of_range(message)
 {
 }
 
@@ -1325,6 +1549,17 @@ void AConfig::printTo(std::ostream &stream, std::size_t depth) const
 	     iterator != exactLocationConfigs.end(); ++iterator)
 	{
 		stream << indent << "location = " << iterator->first << " {"
+			   << std::endl;
+		iterator->second->printTo(stream, depth + 1);
+		stream << indent << "}" << std::endl;
+	}
+
+	for (std::multimap<std::string, LocationConfig *,
+	                   LongestStringFirstComparator>::const_iterator iterator =
+	         priorityPrefixLocationConfigs.begin();
+	     iterator != priorityPrefixLocationConfigs.end(); ++iterator)
+	{
+		stream << indent << "location ^~ " << iterator->first << " {"
 			   << std::endl;
 		iterator->second->printTo(stream, depth + 1);
 		stream << indent << "}" << std::endl;

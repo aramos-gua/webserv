@@ -568,6 +568,20 @@ Unable to continue."
 Unable to continue."
 	run_error_test
 
+	export TEST_NAME="Bad config file: 'location' with missing path after priority prefix modifier"
+	export CONFIG_FILE="location-missing-path-after-priority-prefix-modifier.conf"
+	export EXPECTED="An error occurred during execution:
+\"../../../test/config/parsing/config-files/location-missing-path-after-priority-prefix-modifier.conf\", line 3: Expected value for \"location\".
+Unable to continue."
+	run_error_test
+
+	export TEST_NAME="Bad config file: 'location' prefix declared both with and without '^~'"
+	export CONFIG_FILE="location-duplicate-prefix-modifiers.conf"
+	export EXPECTED="An error occurred during execution:
+\"../../../test/config/parsing/config-files/location-duplicate-prefix-modifiers.conf\", line 5: Duplicate directive \"location\" in \"server\" context.
+Unable to continue."
+	run_error_test
+
 	export TEST_NAME="Bad config file: 'location' block with missing closing brace"
 	export CONFIG_FILE="location-missing-closing-brace.conf"
 	export EXPECTED="An error occurred during execution:
@@ -1002,6 +1016,13 @@ http {
         location = /health {
             return 200 alive;
         }
+        location ^~ /assets/img/ {
+            root /srv/penguinx/images;
+        }
+        location ^~ /assets/ {
+            autoindex on;
+            root /srv/penguinx/static;
+        }
         location /downloads/ {
             alias /srv/penguinx/files/;
             autoindex on;
@@ -1023,6 +1044,38 @@ http {
         listen 0.0.0.0:8080;
         listen [::]:8080;
         return 301 http://alpha.example.com/;
+    }
+}"
+	run_success_test
+
+	export TEST_NAME="Locations grouped by modifier, priority prefixes ahead of the rest"
+	export CONFIG_FILE="location-priority-prefix.conf"
+	export EXPECTED="\
+events {
+    worker_connections 1024;
+}
+http {
+    server {
+        listen 0.0.0.0:8080 default_server;
+        listen [::]:8080 default_server;
+        location = /assets/logo.png {
+            return 304;
+        }
+        location ^~ /assets/fonts/ {
+            root /srv/fonts;
+            location ^~ /assets/fonts/vendor/ {
+                internal;
+            }
+        }
+        location ^~ /static/ {
+            root /srv/static;
+        }
+        location /assets/ {
+            autoindex on;
+        }
+        location ~\$ .php {
+            return 502;
+        }
     }
 }"
 	run_success_test
@@ -1147,6 +1200,10 @@ all-directives-reordered.conf"
 
 	export TEST_NAME="Printed config reparses unchanged: sequential includes"
 	export CONFIG_FILE="include-sequential.conf"
+	run_round_trip_test
+
+	export TEST_NAME="Printed config reparses unchanged: priority prefix locations"
+	export CONFIG_FILE="location-priority-prefix.conf"
 	run_round_trip_test
 
 	export TEST_NAME="Printed config reparses unchanged: every directive"

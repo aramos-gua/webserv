@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: manwar <manwar@student.42london.com>       +#+  +:+       +#+        */
+/*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:40:09 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/25 21:40:10 by manwar           ###   ########.fr       */
+/*   Updated: 2026/08/27 07:17:20 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,7 @@ Server::~Server()
 
 bool Server::startServer()
 {
-	if (!_mainConfig.getWhetherHttpConfigSet())
+	if (!_mainConfig.httpConfigSettingResolves())
 	{
 		std::cerr << "No http block in config: nothing to serve." << std::endl;
 		return false;
@@ -55,7 +55,8 @@ bool Server::startServer()
 	// Already deduplicated by address and port, and canonicalised, by the
 	// config module.
 	const std::vector<std::string> addressPortPairs =
-		_mainConfig.getHttpConfig().getServerConfigAddressPortPairs();
+		_mainConfig.resolveHttpConfigSetting()
+			.extractAllServerConfigSettingAddressPortPairs();
 
 	for (size_t i = 0; i < addressPortPairs.size(); ++i)
 	{
@@ -170,7 +171,7 @@ void Server::acceptClient(int listener_fd)
 		return;
 	}
 	_clients[client_fd] = Client();
-	_clients[client_fd].setUp(_mainConfig.getHttpConfig(),
+	_clients[client_fd].setUp(_mainConfig.resolveHttpConfigSetting(),
 	                          _listenerAddressPortPairs[listener_fd]);
 
 	pfd.fd = client_fd;

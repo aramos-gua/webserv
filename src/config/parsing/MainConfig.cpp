@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/23 02:42:48 by emflynn           #+#    #+#             */
-/*   Updated: 2026/06/03 16:48:01 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 07:24:40 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,16 +44,16 @@ void MainConfig::freeze(const std::string &configFilePath)
 {
 	std::string locationPrefix = StringBase()
 	                             << "\"" << configFilePath << "\": ";
-	if (!getWhetherEventsConfigSet())
+	if (!eventsConfigSettingResolves())
 	{
 		throw std::runtime_error(locationPrefix +
 		                         "\"events\" block is required");
 	}
-	if (!getWhetherHttpConfigSet())
+	if (!httpConfigSettingResolves())
 	{
 		throw std::runtime_error(locationPrefix + "\"http\" block is required");
 	}
-	if (!getHttpConfig().getWhetherAnyServerConfigsSet())
+	if (!resolveHttpConfigSetting().anyServerConfigSettingResolves())
 	{
 		throw std::runtime_error(
 			locationPrefix +

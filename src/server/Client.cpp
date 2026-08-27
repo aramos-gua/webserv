@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:39:35 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/26 02:07:27 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 07:39:34 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -141,7 +141,8 @@ void Client::handleRequest()
 	try
 	{
 		const ServerConfig &serverConfig =
-			_httpConfig->getServerConfig(_addressPortPair, serverName);
+			_httpConfig->resolveServerConfigSettingForRequestTarget(
+				_addressPortPair, serverName);
 
 		// TODO: Replace with real request handling, driven by serverConfig
 		queuePlainTextResponse(
@@ -153,12 +154,12 @@ void Client::handleRequest()
 						 << "server name: "
 						 << (serverName.empty() ? "(none)" : serverName) << "\n"
 						 << "root:        "
-						 << (serverConfig.getWhetherRootSet()
-		                         ? serverConfig.getRoot()
+						 << (serverConfig.rootSettingResolves()
+		                         ? serverConfig.resolveRootSetting()
 		                         : "(not set)")
 						 << "\n");
 	}
-	catch (const std::out_of_range &exception)
+	catch (const AConfig::SettingNotSetException &exception)
 	{
 		// The listener was bound from this same set of pairs, so this should be
 		// unreachable; report it rather than dropping the connection silently.
