@@ -15,6 +15,7 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <vector>
 
 #include "HttpMethodHelpers.hpp"
 #include "HttpRequestParser.hpp"
@@ -81,25 +82,6 @@ std::size_t HttpRequestParser::getMinimumConfirmedLineLength(
 	return str.size();
 }
 
-std::vector<std::string> HttpRequestParser::splitOnCommas(
-	const std::string &str)
-{
-	std::vector<std::string> elements;
-	std::size_t start = 0;
-
-	while (true)
-	{
-		std::size_t separator = str.find(',', start);
-		if (separator == std::string::npos)
-		{
-			elements.push_back(trim(str.substr(start)));
-			return elements;
-		}
-		elements.push_back(trim(str.substr(start, separator - start)));
-		start = separator + 1;
-	}
-}
-
 bool HttpRequestParser::isValidFieldName(const std::string &fieldName)
 {
 	static const std::string TOKEN_SYMBOLS = "!#$%&'*+-.^_`|~";
@@ -134,26 +116,6 @@ bool HttpRequestParser::isValidOriginFormTarget(const std::string &target)
 		}
 	}
 	return true;
-}
-
-std::string HttpRequestParser::trim(const std::string &str)
-{
-	std::size_t start;
-	std::size_t end;
-
-	start = 0;
-	while (start < str.size() &&
-	       (str[start] == ' ' || str[start] == '\t' || str[start] == '\r'))
-	{
-		start++;
-	}
-	end = str.size();
-	while (end > start && (str[end - 1] == ' ' || str[end - 1] == '\t' ||
-	                       str[end - 1] == '\r'))
-	{
-		end--;
-	}
-	return str.substr(start, end - start);
 }
 
 bool HttpRequestParser::isValidContentLength(const std::string &str,
@@ -371,11 +333,8 @@ bool HttpRequestParser::parseHeaders(void)
 	{
 		return fail(BAD_REQUEST);
 	}
-	for (std::size_t i = 0; i < key.size(); ++i)
-	{
-		key[i] = static_cast<char>(tolower(static_cast<unsigned char>(key[i])));
-	}
-	std::string val = trim(line.substr(sep + 1));
+	key = StringHelpers::toLowercase(key);
+	std::string val = StringHelpers::trim(line.substr(sep + 1));
 	if (!request.addHeader(key, val))
 	{
 		return fail(BAD_REQUEST);
@@ -397,7 +356,7 @@ bool HttpRequestParser::startBody(void)
 			return fail(BAD_REQUEST);
 		}
 		std::vector<std::string> codingNames =
-			splitOnCommas(transferEncodingField->second);
+			StringHelpers::splitOnCommas(transferEncodingField->second);
 		std::vector<TransferEncoding> encodings;
 		for (std::size_t i = 0; i < codingNames.size(); ++i)
 		{

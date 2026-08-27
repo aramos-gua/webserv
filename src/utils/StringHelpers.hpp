@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/03 11:12:27 by emflynn           #+#    #+#             */
-/*   Updated: 2026/06/03 11:12:47 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 19:13:49 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,12 +14,15 @@
 #define STRING_HELPERS_HPP
 
 #include <string>
+#include <vector>
 
 class StringHelpers
 {
 public:
 	static bool isAllDigits(const std::string &str);
 	static std::string toLowercase(const std::string &str);
+	static std::string trim(const std::string &str);
+	static std::vector<std::string> splitOnCommas(const std::string &str);
 };
 
 #endif
