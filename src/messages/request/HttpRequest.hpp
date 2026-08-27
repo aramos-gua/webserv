@@ -13,6 +13,7 @@
 #ifndef HTTP_REQUEST_HPP
 #define HTTP_REQUEST_HPP
 
+#include <cstddef>
 #include <map>
 #include <string>
 
@@ -25,9 +26,9 @@ struct HttpRequest
 	std::map<std::string, std::string> headers;
 
 	std::string body;
-	size_t contentLength;
+	std::size_t contentLength;
 
-	HttpRequest(): contentLength(0)
+	HttpRequest(void): contentLength(0)
 	{
 	}
 };

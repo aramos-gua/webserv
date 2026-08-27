@@ -23,20 +23,18 @@
 
 static const int BUFSIZE = 2048; // TODO: Change?
 
-Client::Client()
-	: _send_buf(), _close(false), _httpConfig(NULL), _addressPortPair(),
-	  _parser()
+Client::Client(void): shouldClose(false), httpConfig(NULL)
 {
 }
 
 Client::Client(const Client &copy)
-	: _send_buf(copy._send_buf), _close(copy._close),
-	  _httpConfig(copy._httpConfig), _addressPortPair(copy._addressPortPair),
-	  _parser(copy._parser)
+	: sendBuffer(copy.sendBuffer), shouldClose(copy.shouldClose),
+	  httpConfig(copy.httpConfig), addressPortPair(copy.addressPortPair),
+	  requestParser(copy.requestParser)
 {
 }
 
-Client::~Client()
+Client::~Client(void)
 {
 }
 
@@ -44,11 +42,11 @@ Client &Client::operator=(const Client &copy)
 {
 	if (this != &copy)
 	{
-		this->_send_buf = copy._send_buf;
-		this->_close = copy._close;
-		this->_httpConfig = copy._httpConfig;
-		this->_addressPortPair = copy._addressPortPair;
-		this->_parser = copy._parser;
+		this->sendBuffer = copy.sendBuffer;
+		this->shouldClose = copy.shouldClose;
+		this->httpConfig = copy.httpConfig;
+		this->addressPortPair = copy.addressPortPair;
+		this->requestParser = copy.requestParser;
 	}
 	return *this;
 }
@@ -56,42 +54,42 @@ Client &Client::operator=(const Client &copy)
 void Client::setUp(const HttpConfig &httpConfig,
                    const std::string &addressPortPair)
 {
-	_httpConfig = &httpConfig;
-	_addressPortPair = addressPortPair;
+	this->httpConfig = &httpConfig;
+	this->addressPortPair = addressPortPair;
 }
 
-bool Client::writeFlag() const
+bool Client::writeFlag(void) const
 {
-	return !_send_buf.empty();
+	return !sendBuffer.empty();
 }
 
-bool Client::closeFlag() const
+bool Client::closeFlag(void) const
 {
-	return _close;
+	return shouldClose;
 }
 
-void Client::onRecv(int fd)
+void Client::onRecv(int fileDescriptor)
 {
-	char tmp[BUFSIZE];
-	ssize_t bytes;
+	char buffer[BUFSIZE];
+	ssize_t bytesRead;
 
-	bytes = recv(fd, tmp, sizeof(tmp), 0);
-	if (bytes <= 0)
+	bytesRead = recv(fileDescriptor, buffer, sizeof(buffer), 0);
+	if (bytesRead <= 0)
 	{
-		_close = true;
+		shouldClose = true;
 		return;
 	}
-	HttpRequestParser::Result res =
-		_parser.feed(tmp, static_cast<size_t>(bytes));
-	if (res == HttpRequestParser::COMPLETE)
+	HttpRequestParser::Result result =
+		requestParser.feed(buffer, static_cast<std::size_t>(bytesRead));
+	if (result == HttpRequestParser::COMPLETE)
 	{
 		handleRequest();
-		_parser.reset();
+		requestParser.reset();
 	}
-	else if (res == HttpRequestParser::ERROR)
+	else if (result == HttpRequestParser::ERROR)
 	{
 		queuePlainTextResponse(400, "Bad Request", "Malformed request\n");
-		_close = true;
+		shouldClose = true;
 	}
 }
 
@@ -118,9 +116,9 @@ std::string Client::getServerNameFromHostHeader(const std::string &hostHeader)
 	return StringHelpers::toLowercase(serverName);
 }
 
-void Client::handleRequest()
+void Client::handleRequest(void)
 {
-	const HttpRequest &request = _parser.getRequest();
+	const HttpRequest &request = requestParser.getRequest();
 	std::string hostHeader;
 
 	std::map<std::string, std::string>::const_iterator hostIterator =
@@ -131,24 +129,24 @@ void Client::handleRequest()
 	}
 	const std::string serverName = getServerNameFromHostHeader(hostHeader);
 
-	if (_httpConfig == NULL)
+	if (httpConfig == NULL)
 	{
 		queuePlainTextResponse(500, "Internal Server Error",
 		                       "Client has no configuration\n");
-		_close = true;
+		shouldClose = true;
 		return;
 	}
 	try
 	{
 		const ServerConfig &serverConfig =
-			_httpConfig->resolveServerConfigSettingForRequestTarget(
-				_addressPortPair, serverName);
+			httpConfig->resolveServerConfigSettingForRequestTarget(
+				addressPortPair, serverName);
 
 		// TODO: Replace with real request handling, driven by serverConfig
 		queuePlainTextResponse(
 			200, "OK",
 			StringBase() << "Webserv is working\n\n"
-						 << "listener:    " << _addressPortPair << "\n"
+						 << "listener:    " << addressPortPair << "\n"
 						 << "host header: "
 						 << (hostHeader.empty() ? "(none)" : hostHeader) << "\n"
 						 << "server name: "
@@ -165,7 +163,7 @@ void Client::handleRequest()
 		// unreachable; report it rather than dropping the connection silently.
 		queuePlainTextResponse(500, "Internal Server Error",
 		                       StringBase() << exception.what() << "\n");
-		_close = true;
+		shouldClose = true;
 	}
 }
 
@@ -179,20 +177,20 @@ void Client::queuePlainTextResponse(int statusCode,
 	response.description = description;
 	response.headers["Content-Type"] = "text/plain";
 	response.body = body;
-	_send_buf += HttpResponseBuilder::build(response);
+	sendBuffer += HttpResponseBuilder::build(response);
 }
 
-void Client::onSend(int fd)
+void Client::onSend(int fileDescriptor)
 {
-	ssize_t bytes;
+	ssize_t bytesSent;
 
-	bytes = send(fd, _send_buf.data(), _send_buf.size(), 0);
-	if (bytes < 0)
+	bytesSent = send(fileDescriptor, sendBuffer.data(), sendBuffer.size(), 0);
+	if (bytesSent < 0)
 	{
-		_close = true;
+		shouldClose = true;
 	}
-	else if (bytes > 0)
+	else if (bytesSent > 0)
 	{
-		_send_buf.erase(0, static_cast<size_t>(bytes));
+		sendBuffer.erase(0, static_cast<std::size_t>(bytesSent));
 	}
 }

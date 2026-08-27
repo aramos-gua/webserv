@@ -13,12 +13,16 @@
 #ifndef HTTP_REQUEST_PARSER_HPP
 #define HTTP_REQUEST_PARSER_HPP
 
+#include <cstddef>
 #include <string>
 
 #include "HttpRequest.hpp"
 
 class HttpRequestParser
 {
+private:
+	static const std::size_t DEFAULT_MAX_BODY_SIZE = 1024UL * 1024UL;
+
 public:
 	enum Result
 	{
@@ -27,15 +31,15 @@ public:
 		ERROR
 	};
 
-	HttpRequestParser(size_t maxBodySize = 1024 * 1024);
+	HttpRequestParser(std::size_t maxBodySize = DEFAULT_MAX_BODY_SIZE);
 	HttpRequestParser(const HttpRequestParser &other);
 	HttpRequestParser &operator=(const HttpRequestParser &other);
-	~HttpRequestParser();
+	~HttpRequestParser(void);
 
-	Result feed(const char *data, size_t len);
-	const HttpRequest &getRequest() const;
-	const std::string &getError() const;
-	void reset();
+	Result feed(const char *data, std::size_t len);
+	const HttpRequest &getRequest(void) const;
+	const std::string &getError(void) const;
+	void reset(void);
 
 	static HttpRequest parse(const std::string &rawRequest);
 
@@ -49,21 +53,21 @@ private:
 		PARSE_ERROR
 	};
 
-	State _state;
-	std::string _buffer;
-	HttpRequest _req;
-	std::string _error;
+	State state;
+	std::string buffer;
+	HttpRequest request;
+	std::string error;
 
-	size_t _maxBodySize;
-	size_t _bodyBytesNeeded;
-	size_t _headerCount;
+	std::size_t maxBodySize;
+	std::size_t bodyBytesNeeded;
+	std::size_t headerCount;
 
-	bool parseRequestLine();
-	bool parseHeaders();
-	bool parseBody();
+	bool parseRequestLine(void);
+	bool parseHeaders(void);
+	bool parseBody(void);
 
-	static std::string trim(const std::string &s);
-	static bool isValidContentLength(const std::string &s, size_t &out);
+	static std::string trim(const std::string &str);
+	static bool isValidContentLength(const std::string &str, std::size_t &out);
 };
 
 #endif

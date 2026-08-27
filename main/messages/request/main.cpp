@@ -10,46 +10,61 @@
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <cstddef>
+#include <cstdlib>
+#include <exception>
 #include <iostream>
 
 #include "HttpRequestParser.hpp"
 
-int main()
+int main(void)
 {
-	std::string rawRequest = "POST /wordpress/wp-admin HTTP/1.0\r\n"
-							 "Host: localhost:8080\r\n"
-							 "User-Agent: Mozilla\r\n"
-							 "Content-Length: 11\r\n"
-							 "\r\n"
-							 "hello world";
-
-	HttpRequestParser parser;
-
-	// simulate a fragmented TCP read: feed it in two pieces
-	size_t mid = rawRequest.size() / 2;
-	parser.feed(rawRequest.c_str(), mid);
-	HttpRequestParser::Result result =
-		parser.feed(rawRequest.c_str() + mid, rawRequest.size() - mid);
-
-	if (result != HttpRequestParser::COMPLETE)
+	try
 	{
-		std::cerr << "Parse failed or incomplete: " << parser.getError()
-				  << std::endl;
-		return 1;
+		std::string rawRequest = "POST /wordpress/wp-admin HTTP/1.0\r\n"
+								 "Host: localhost:8080\r\n"
+								 "User-Agent: Mozilla\r\n"
+								 "Content-Length: 11\r\n"
+								 "\r\n"
+								 "hello world";
+
+		HttpRequestParser parser;
+
+		// simulate a fragmented TCP read: feed it in two pieces
+		std::size_t mid = rawRequest.size() / 2;
+		parser.feed(rawRequest.c_str(), mid);
+		HttpRequestParser::Result result =
+			parser.feed(rawRequest.c_str() + mid, rawRequest.size() - mid);
+
+		if (result != HttpRequestParser::COMPLETE)
+		{
+			std::cerr << "Parse failed or incomplete: " << parser.getError()
+					  << std::endl;
+			return EXIT_FAILURE;
+		}
+
+		const HttpRequest &request = parser.getRequest();
+		std::cout << "METHOD: " << request.method << std::endl;
+		std::cout << "PATH: " << request.path << std::endl;
+		std::cout << "VERSION: " << request.version << std::endl;
+
+		std::cout << "\nHEADERS:\n";
+		std::map<std::string, std::string>::const_iterator headerIterator;
+		for (headerIterator = request.headers.begin();
+		     headerIterator != request.headers.end(); ++headerIterator)
+		{
+			std::cout << headerIterator->first << " => "
+					  << headerIterator->second << std::endl;
+		}
+
+		std::cout << "\nBODY:\n" << request.body << std::endl;
 	}
-
-	const HttpRequest &req = parser.getRequest();
-	std::cout << "METHOD: " << req.method << std::endl;
-	std::cout << "PATH: " << req.path << std::endl;
-	std::cout << "VERSION: " << req.version << std::endl;
-
-	std::cout << "\nHEADERS:\n";
-	std::map<std::string, std::string>::const_iterator it;
-	for (it = req.headers.begin(); it != req.headers.end(); ++it)
+	catch (const std::exception &exception)
 	{
-		std::cout << it->first << " => " << it->second << std::endl;
+		std::cerr << "An error occurred during execution:" << std::endl;
+		std::cerr << exception.what() << "." << std::endl;
+		std::cerr << "Unable to continue." << std::endl;
+		return EXIT_FAILURE;
 	}
-
-	std::cout << "\nBODY:\n" << req.body << std::endl;
-	return 0;
+	return EXIT_SUCCESS;
 }

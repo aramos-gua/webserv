@@ -21,9 +21,9 @@
 /* ************************************************************************** */
 /*                              CONSTRUCTOR                                   */
 /* ************************************************************************** */
-HttpRequestParser::HttpRequestParser(size_t maxBodySize)
-	: _state(PARSE_REQUEST_LINE), _buffer(), _req(), _error(),
-	  _maxBodySize(maxBodySize), _bodyBytesNeeded(0), _headerCount(0)
+HttpRequestParser::HttpRequestParser(std::size_t maxBodySize)
+	: state(PARSE_REQUEST_LINE), maxBodySize(maxBodySize), bodyBytesNeeded(0),
+	  headerCount(0)
 {
 }
 
@@ -31,9 +31,9 @@ HttpRequestParser::HttpRequestParser(size_t maxBodySize)
 /*                              COPY CONSTRUCTOR                              */
 /* ************************************************************************** */
 HttpRequestParser::HttpRequestParser(const HttpRequestParser &other)
-	: _state(other._state), _buffer(other._buffer), _req(other._req),
-	  _error(other._error), _maxBodySize(other._maxBodySize),
-	  _bodyBytesNeeded(other._bodyBytesNeeded), _headerCount(other._headerCount)
+	: state(other.state), buffer(other.buffer), request(other.request),
+	  error(other.error), maxBodySize(other.maxBodySize),
+	  bodyBytesNeeded(other.bodyBytesNeeded), headerCount(other.headerCount)
 {
 }
 
@@ -44,13 +44,13 @@ HttpRequestParser &HttpRequestParser::operator=(const HttpRequestParser &other)
 {
 	if (this != &other)
 	{
-		_state = other._state;
-		_buffer = other._buffer;
-		_req = other._req;
-		_error = other._error;
-		_maxBodySize = other._maxBodySize;
-		_bodyBytesNeeded = other._bodyBytesNeeded;
-		_headerCount = other._headerCount;
+		state = other.state;
+		buffer = other.buffer;
+		request = other.request;
+		error = other.error;
+		maxBodySize = other.maxBodySize;
+		bodyBytesNeeded = other.bodyBytesNeeded;
+		headerCount = other.headerCount;
 	}
 	return *this;
 }
@@ -58,9 +58,8 @@ HttpRequestParser &HttpRequestParser::operator=(const HttpRequestParser &other)
 /* ************************************************************************** */
 /*                               DESTRUCTOR                                   */
 /* ************************************************************************** */
-HttpRequestParser::~HttpRequestParser()
+HttpRequestParser::~HttpRequestParser(void)
 {
-	return;
 }
 
 /* ************************************************************************** */
@@ -68,8 +67,8 @@ HttpRequestParser::~HttpRequestParser()
 /* ************************************************************************** */
 std::string HttpRequestParser::trim(const std::string &str)
 {
-	size_t start;
-	size_t end;
+	std::size_t start;
+	std::size_t end;
 
 	start = 0;
 	while (start < str.size() &&
@@ -86,193 +85,198 @@ std::string HttpRequestParser::trim(const std::string &str)
 	return str.substr(start, end - start);
 }
 
-bool HttpRequestParser::isValidContentLength(const std::string &s, size_t &out)
+bool HttpRequestParser::isValidContentLength(const std::string &str,
+                                             std::size_t &out)
 {
-	if (s.empty())
+	static const std::size_t DECIMAL_BASE = 10;
+
+	if (str.empty())
 	{
 		return false;
 	}
-	size_t val = 0;
-	for (size_t i = 0; i < s.size(); ++i)
+	std::size_t value = 0;
+	for (std::size_t i = 0; i < str.size(); ++i)
 	{
-		if (!isdigit(static_cast<unsigned char>(s[i])))
+		if (!isdigit(static_cast<unsigned char>(str[i])))
 		{
 			return false;
 		}
-		size_t digit = s[i] - '0';
-		if (val > (std::numeric_limits<size_t>::max() - digit) / 10)
+		std::size_t digit = str[i] - '0';
+		if (value >
+		    (std::numeric_limits<std::size_t>::max() - digit) / DECIMAL_BASE)
 		{
 			return false;
 		}
-		val = val * 10 + digit;
+		value = (value * DECIMAL_BASE) + digit;
 	}
-	out = val;
+	out = value;
 	return true;
 }
 
-void HttpRequestParser::reset()
+void HttpRequestParser::reset(void)
 {
-	_state = PARSE_REQUEST_LINE;
-	_buffer.clear();
-	_req = HttpRequest();
-	_error.clear();
-	_bodyBytesNeeded = 0;
-	_headerCount = 0;
+	state = PARSE_REQUEST_LINE;
+	buffer.clear();
+	request = HttpRequest();
+	error.clear();
+	bodyBytesNeeded = 0;
+	headerCount = 0;
 }
 
-const HttpRequest &HttpRequestParser::getRequest() const
+const HttpRequest &HttpRequestParser::getRequest(void) const
 {
-	return _req;
+	return request;
 }
 
-const std::string &HttpRequestParser::getError() const
+const std::string &HttpRequestParser::getError(void) const
 {
-	return _error;
+	return error;
 }
 
-bool HttpRequestParser::parseRequestLine()
+bool HttpRequestParser::parseRequestLine(void)
 {
-	static const size_t MAX_REQUEST_LINE = 8192;
-	size_t pos = _buffer.find("\r\n");
+	static const std::size_t MAX_REQUEST_LINE = 8192;
+	std::size_t pos = buffer.find("\r\n");
 	if (pos == std::string::npos)
 	{
-		if (_buffer.size() > MAX_REQUEST_LINE)
+		if (buffer.size() > MAX_REQUEST_LINE)
 		{
-			_state = PARSE_ERROR;
-			_error = "Request line too large";
+			state = PARSE_ERROR;
+			error = "Request line too large";
 		}
 		return false;
 	}
-	std::string line = _buffer.substr(0, pos);
-	_buffer.erase(0, pos + 2);
+	std::string line = buffer.substr(0, pos);
+	buffer.erase(0, pos + 2);
 	std::istringstream iss(line);
-	if (!(iss >> _req.method >> _req.path >> _req.version))
+	if (!(iss >> request.method >> request.path >> request.version))
 	{
-		_state = PARSE_ERROR;
-		_error = "Invalid request line";
+		state = PARSE_ERROR;
+		error = "Invalid request line";
 		return false;
 	}
-	_state = PARSE_HEADERS;
+	state = PARSE_HEADERS;
 	return true;
 }
 
-bool HttpRequestParser::parseHeaders()
+bool HttpRequestParser::parseHeaders(void)
 {
-	static const size_t MAX_HEADERS_LINE = 8192;
-	size_t pos = _buffer.find("\r\n");
+	static const std::size_t MAX_HEADERS_LINE = 8192;
+	std::size_t pos = buffer.find("\r\n");
 	if (pos == std::string::npos)
 	{
-		if (_buffer.size() > MAX_HEADERS_LINE)
+		if (buffer.size() > MAX_HEADERS_LINE)
 		{
-			_state = PARSE_ERROR;
-			_error = "Headers too large";
+			state = PARSE_ERROR;
+			error = "Headers too large";
 		}
 		return false;
 	}
-	std::string line = _buffer.substr(0, pos);
-	_buffer.erase(0, pos + 2);
+	std::string line = buffer.substr(0, pos);
+	buffer.erase(0, pos + 2);
 	if (line.empty())
 	{
-		if (_req.headers.count("content-length"))
+		if (request.headers.count("content-length"))
 		{
-			if (!isValidContentLength(_req.headers["content-length"],
-			                          _bodyBytesNeeded))
+			if (!isValidContentLength(request.headers["content-length"],
+			                          bodyBytesNeeded))
 			{
-				_state = PARSE_ERROR;
-				_error = "Invalid Content-Length";
+				state = PARSE_ERROR;
+				error = "Invalid Content-Length";
 				return false;
 			}
-			if (_bodyBytesNeeded > _maxBodySize)
+			if (bodyBytesNeeded > maxBodySize)
 			{
-				_state = PARSE_ERROR;
-				_error = "Body too large";
+				state = PARSE_ERROR;
+				error = "Body too large";
 				return false;
 			}
 		}
-		_state = PARSE_BODY;
+		state = PARSE_BODY;
 		return true;
 	}
-	size_t sep = line.find(":");
+	std::size_t sep = line.find(":");
 	if (sep == std::string::npos)
 	{
-		_state = PARSE_ERROR;
-		_error = "Malformed header line";
+		state = PARSE_ERROR;
+		error = "Malformed header line";
 		return false;
 	}
-	static const size_t MAX_HEADER_COUNT = 100;
-	if (++_headerCount > MAX_HEADER_COUNT)
+	static const std::size_t MAX_HEADER_COUNT = 100;
+	if (++headerCount > MAX_HEADER_COUNT)
 	{
-		_state = PARSE_ERROR;
-		_error = "Too many headers";
+		state = PARSE_ERROR;
+		error = "Too many headers";
 		return false;
 	}
 	std::string key = trim(line.substr(0, sep));
-	for (size_t i = 0; i < key.size(); ++i)
+	for (std::size_t i = 0; i < key.size(); ++i)
 	{
-		key[i] = tolower(static_cast<unsigned char>(key[i]));
+		key[i] = static_cast<char>(tolower(static_cast<unsigned char>(key[i])));
 	}
 	std::string val = trim(line.substr(sep + 1));
-	if (key == "content-length" && _req.headers.count(key))
+	if (key == "content-length" && request.headers.count(key))
 	{
-		_state = PARSE_ERROR;
-		_error = "Duplicate Content-Length";
+		state = PARSE_ERROR;
+		error = "Duplicate Content-Length";
 		return false;
 	}
-	_req.headers[key] = val;
+	request.headers[key] = val;
 	return true;
 }
 
-bool HttpRequestParser::parseBody()
+bool HttpRequestParser::parseBody(void)
 {
-	if (_bodyBytesNeeded == 0)
+	if (bodyBytesNeeded == 0)
 	{
-		_state = PARSE_DONE;
+		state = PARSE_DONE;
 		return true;
 	}
-	if (_buffer.size() < _bodyBytesNeeded)
+	if (buffer.size() < bodyBytesNeeded)
 	{
 		return false;
 	}
-	_req.body = _buffer.substr(0, _bodyBytesNeeded);
-	_req.contentLength = _bodyBytesNeeded;
-	_buffer.erase(0, _bodyBytesNeeded);
-	_state = PARSE_DONE;
+	request.body = buffer.substr(0, bodyBytesNeeded);
+	request.contentLength = bodyBytesNeeded;
+	buffer.erase(0, bodyBytesNeeded);
+	state = PARSE_DONE;
 	return true;
 }
 
-HttpRequestParser::Result HttpRequestParser::feed(const char *data, size_t len)
+HttpRequestParser::Result HttpRequestParser::feed(const char *data,
+                                                  std::size_t len)
 {
-	if (_state == PARSE_ERROR)
+	if (state == PARSE_ERROR)
 	{
 		return ERROR;
 	}
-	if (_state == PARSE_DONE)
+	if (state == PARSE_DONE)
 	{
 		return COMPLETE;
 	}
-	_buffer.append(data, len);
+	buffer.append(data, len);
 	bool progress = true;
 	while (progress)
 	{
 		progress = false;
-		if (_state == PARSE_REQUEST_LINE)
+		if (state == PARSE_REQUEST_LINE)
 		{
 			progress = parseRequestLine();
 		}
-		else if (_state == PARSE_HEADERS)
+		else if (state == PARSE_HEADERS)
 		{
 			progress = parseHeaders();
 		}
-		else if (_state == PARSE_BODY)
+		else if (state == PARSE_BODY)
 		{
 			progress = parseBody();
 		}
 	}
-	if (_state == PARSE_DONE)
+	if (state == PARSE_DONE)
 	{
 		return COMPLETE;
 	}
-	if (_state == PARSE_ERROR)
+	if (state == PARSE_ERROR)
 	{
 		return ERROR;
 	}

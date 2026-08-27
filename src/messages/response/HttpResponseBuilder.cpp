@@ -10,18 +10,19 @@
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <cstddef>
 #include <sstream>
 
 #include "HttpResponseBuilder.hpp"
 
-std::string HttpResponseBuilder::sanitizeHeaderValue(const std::string &s)
+std::string HttpResponseBuilder::sanitizeHeaderValue(const std::string &str)
 {
 	std::string out;
-	for (size_t i = 0; i < s.size(); ++i)
+	for (std::size_t i = 0; i < str.size(); ++i)
 	{
-		if (s[i] != '\r' && s[i] != '\n')
+		if (str[i] != '\r' && str[i] != '\n')
 		{
-			out += s[i];
+			out += str[i];
 		}
 	}
 	return out;
@@ -32,14 +33,17 @@ std::string HttpResponseBuilder::build(const HttpResponse &res)
 	std::ostringstream out;
 	out << res.version << " " << res.statusCode << " "
 		<< sanitizeHeaderValue(res.description) << "\r\n";
-	std::map<std::string, std::string>::const_iterator it;
-	for (it = res.headers.begin(); it != res.headers.end(); ++it)
+	std::map<std::string, std::string>::const_iterator headerIterator;
+	for (headerIterator = res.headers.begin();
+	     headerIterator != res.headers.end(); ++headerIterator)
 	{
-		if (it->first == "Content-Length" || it->first == "content-length")
+		if (headerIterator->first == "Content-Length" ||
+		    headerIterator->first == "content-length")
 		{
 			continue;
 		}
-		out << it->first << ": " << sanitizeHeaderValue(it->second) << "\r\n";
+		out << headerIterator->first << ": "
+			<< sanitizeHeaderValue(headerIterator->second) << "\r\n";
 	}
 	bool hasConnection =
 		res.headers.count("Connection") || res.headers.count("connection");

@@ -26,7 +26,7 @@ struct HttpResponse
 
 	std::string body;
 
-	HttpResponse(): statusCode(200), version("HTTP/1.0"), description("OK")
+	HttpResponse(void): statusCode(200), version("HTTP/1.0"), description("OK")
 	{
 	}
 };

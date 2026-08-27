@@ -24,29 +24,33 @@
 #include "IpAddressPortPairHelpers.hpp"
 #include "Server.hpp"
 
-Server::Server(const MainConfig &mainConfig): _mainConfig(mainConfig)
+// Enough for any decimal port number, including the terminator.
+static const std::size_t PORT_STRING_SIZE = 16;
+static const int LISTEN_BACKLOG = 1024;
+
+Server::Server(const MainConfig &mainConfig): mainConfig(mainConfig)
 {
 }
 
-Server::~Server()
+Server::~Server(void)
 {
-	for (std::map<int, Client>::iterator iterator = _clients.begin();
-	     iterator != _clients.end(); ++iterator)
+	for (std::map<int, Client>::iterator iterator = clients.begin();
+	     iterator != clients.end(); ++iterator)
 	{
 		close(iterator->first);
 	}
-	for (size_t i = 0; i < _listeners.size(); ++i)
+	for (std::size_t i = 0; i < listenerFileDescriptors.size(); ++i)
 	{
-		if (_listeners[i] >= 0)
+		if (listenerFileDescriptors[i] >= 0)
 		{
-			close(_listeners[i]);
+			close(listenerFileDescriptors[i]);
 		}
 	}
 }
 
-bool Server::startServer()
+bool Server::startServer(void)
 {
-	if (!_mainConfig.httpConfigSettingResolves())
+	if (!mainConfig.httpConfigSettingResolves())
 	{
 		std::cerr << "No http block in config: nothing to serve." << std::endl;
 		return false;
@@ -55,43 +59,50 @@ bool Server::startServer()
 	// Already deduplicated by address and port, and canonicalised, by the
 	// config module.
 	const std::vector<std::string> addressPortPairs =
-		_mainConfig.resolveHttpConfigSetting()
+		mainConfig.resolveHttpConfigSetting()
 			.extractAllServerConfigSettingAddressPortPairs();
 
-	for (size_t i = 0; i < addressPortPairs.size(); ++i)
+	for (std::size_t i = 0; i < addressPortPairs.size(); ++i)
 	{
 		const std::string &addressPortPair = addressPortPairs[i];
 		const std::pair<std::string, uint16_t> addressAndPort =
 			IpAddressPortPairHelpers::splitCanonicalIpAddressPortPair(
 				addressPortPair);
 
-		int fd = createListener(addressAndPort.first, addressAndPort.second);
-		if (fd < 0)
+		int fileDescriptor =
+			createListener(addressAndPort.first, addressAndPort.second);
+		if (fileDescriptor < 0)
 		{
 			return false;
 		}
 
-		pollfd lpfd;
-		lpfd.fd = fd;
-		lpfd.events = POLLIN;
-		lpfd.revents = 0;
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+		pollfd listenerPollFd;
+		listenerPollFd.fd = fileDescriptor;
+		listenerPollFd.events = POLLIN;
+		listenerPollFd.revents = 0;
 
-		_listeners.push_back(fd);
-		_listenerAddressPortPairs[fd] = addressPortPair;
-		_pfds.push_back(lpfd);
+		listenerFileDescriptors.push_back(fileDescriptor);
+		listenerAddressPortPairs[fileDescriptor] = addressPortPair;
+		pollFds.push_back(listenerPollFd);
 
 		std::cout << "Listening on " << addressPortPair
 				  << std::endl; // TODO: Remove debug message
 	}
-	return !_listeners.empty();
+	return !listenerFileDescriptors.empty();
 }
 
-void Server::runServer()
+void Server::runServer(void)
 {
 	for (;;)
 	{
-		int nready = poll(&_pfds[0], static_cast<nfds_t>(_pfds.size()), -1);
-		if (nready < 0)
+		// std::vector::data() is C++11, so the address of the first element
+		// is the C++98 way to reach the underlying array.
+		// NOLINTBEGIN(readability-container-data-pointer)
+		int readyCount =
+			poll(&pollFds[0], static_cast<nfds_t>(pollFds.size()), -1);
+		// NOLINTEND(readability-container-data-pointer)
+		if (readyCount < 0)
 		{
 			if (errno == EINTR)
 			{
@@ -100,102 +111,110 @@ void Server::runServer()
 			perror("poll");
 			break;
 		}
-		for (size_t i = 0; i < _pfds.size() && nready > 0;)
+		for (std::size_t i = 0; i < pollFds.size() && readyCount > 0;)
 		{
-			if (_pfds[i].revents == 0)
+			if (pollFds[i].revents == 0)
 			{
 				++i;
 				continue;
 			}
-			--nready;
-			int fd = _pfds[i].fd;
-			if (_listenerAddressPortPairs.count(fd))
+			--readyCount;
+			int fileDescriptor = pollFds[i].fd;
+			if (listenerAddressPortPairs.count(fileDescriptor))
 			{
-				acceptClient(fd);
+				acceptClient(fileDescriptor);
 				++i;
 			}
 			else if (clientEventHandler(i))
 			{
 				++i;
 			}
-			// else: removeClient shifted the next pfd into position i
+			// else: removeClient shifted the next clientPollFd into position i
 		}
 	}
 }
 
-bool Server::clientEventHandler(size_t i)
+bool Server::clientEventHandler(std::size_t pollFdIndex)
 {
-	short rev = _pfds[i].revents;
-	int fd = _pfds[i].fd;
-	Client &cl = _clients[fd];
+	short returnedEvents = pollFds[pollFdIndex].revents;
+	int fileDescriptor = pollFds[pollFdIndex].fd;
+	Client &client = clients[fileDescriptor];
 
-	if (!cl.closeFlag() && (rev & POLLIN))
+	if (!client.closeFlag() && (returnedEvents & POLLIN))
 	{
-		cl.onRecv(fd);
+		client.onRecv(fileDescriptor);
 	}
-	if (rev & POLLOUT)
+	if (returnedEvents & POLLOUT)
 	{
-		cl.onSend(fd);
+		client.onSend(fileDescriptor);
 	}
 	// A client that wants to close may still have a response queued, so hold
 	// the connection open until everything buffered has been flushed.
-	if ((rev & (POLLERR | POLLHUP)) || (cl.closeFlag() && !cl.writeFlag()))
+	if ((returnedEvents & (POLLERR | POLLHUP)) ||
+	    (client.closeFlag() && !client.writeFlag()))
 	{
-		removeClient(i);
+		removeClient(pollFdIndex);
 		return false;
 	}
-	syncEvents(i, cl);
+	syncEvents(pollFdIndex, client);
 	return true;
 }
 
-void Server::acceptClient(int listener_fd)
+void Server::acceptClient(int listenerFileDescriptor)
 {
-	sockaddr_storage client_addr;
-	socklen_t client_len;
-	pollfd pfd;
-	int client_fd;
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+	sockaddr_storage clientAddress;
+	socklen_t clientAddressLength;
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+	pollfd clientPollFd;
+	int clientFileDescriptor;
 	char host[NI_MAXHOST];
-	char svc[NI_MAXSERV];
+	char service[NI_MAXSERV];
 
-	client_len = sizeof(client_addr);
-	client_fd = accept(listener_fd, reinterpret_cast<sockaddr *>(&client_addr),
-	                   &client_len);
-	if (client_fd < 0)
+	clientAddressLength = sizeof(clientAddress);
+	// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+	clientFileDescriptor = accept(listenerFileDescriptor,
+	                              reinterpret_cast<sockaddr *>(&clientAddress),
+	                              &clientAddressLength);
+	// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+	if (clientFileDescriptor < 0)
 	{
 		return;
 	}
-	if (setNonblock(client_fd) < 0)
+	if (setNonblock(clientFileDescriptor) < 0)
 	{
 		perror("fcntl");
-		close(client_fd);
+		close(clientFileDescriptor);
 		return;
 	}
-	_clients[client_fd] = Client();
-	_clients[client_fd].setUp(_mainConfig.resolveHttpConfigSetting(),
-	                          _listenerAddressPortPairs[listener_fd]);
+	clients[clientFileDescriptor] = Client();
+	clients[clientFileDescriptor].setUp(
+		mainConfig.resolveHttpConfigSetting(),
+		listenerAddressPortPairs[listenerFileDescriptor]);
 
-	pfd.fd = client_fd;
-	pfd.events = POLLIN;
-	pfd.revents = 0;
-	_pfds.push_back(pfd);
+	clientPollFd.fd = clientFileDescriptor;
+	clientPollFd.events = POLLIN;
+	clientPollFd.revents = 0;
+	pollFds.push_back(clientPollFd);
 
-	if (getnameinfo(reinterpret_cast<sockaddr *>(&client_addr), client_len,
-	                host, sizeof(host), svc, sizeof(svc),
-	                NI_NUMERICHOST | NI_NUMERICSERV) == 0)
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+	if (getnameinfo(reinterpret_cast<sockaddr *>(&clientAddress),
+	                clientAddressLength, host, sizeof(host), service,
+	                sizeof(service), NI_NUMERICHOST | NI_NUMERICSERV) == 0)
 	{
-		std::cout << "Connected fd= " << client_fd << " from " << host << ":"
-				  << svc << std::endl;
+		std::cout << "Connected fd=" << clientFileDescriptor << " from " << host
+				  << ":" << service << std::endl;
 	}
 }
 
-void Server::removeClient(size_t i)
+void Server::removeClient(std::size_t pollFdIndex)
 {
-	int fd = _pfds[i].fd;
+	int fileDescriptor = pollFds[pollFdIndex].fd;
 
-	std::cout << "Removing fd=" << fd << std::endl;
-	close(fd);
-	_clients.erase(fd);
-	_pfds.erase(_pfds.begin() + i);
+	std::cout << "Removing fd=" << fileDescriptor << std::endl;
+	close(fileDescriptor);
+	clients.erase(fileDescriptor);
+	pollFds.erase(pollFds.begin() + static_cast<std::ptrdiff_t>(pollFdIndex));
 }
 
 /*
@@ -209,37 +228,41 @@ void Server::removeClient(size_t i)
  *
  *
  */
-void Server::syncEvents(size_t i, const Client &client)
+void Server::syncEvents(std::size_t pollFdIndex, const Client &client)
 {
-	_pfds[i].events = POLLIN;
+	pollFds[pollFdIndex].events = POLLIN;
 	if (client.writeFlag())
 	{
-		_pfds[i].events |= POLLOUT;
+		pollFds[pollFdIndex].events |= POLLOUT;
 	}
 }
 
-int Server::setNonblock(int fd)
+int Server::setNonblock(int fileDescriptor)
 {
 	int flags;
 
-	flags = fcntl(fd, F_GETFL, 0);
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+	flags = fcntl(fileDescriptor, F_GETFL, 0);
 	if (flags < 0)
 	{
 		return -1;
 	}
-	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+	return fcntl(fileDescriptor, F_SETFL, flags | O_NONBLOCK);
 }
 
 int Server::createListener(const std::string &host, int port)
 {
-	char portStr[16];
-	int fd;
+	char portString[PORT_STRING_SIZE];
+	int fileDescriptor;
 	int opt = 1;
 	int err;
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 	addrinfo hints;
-	addrinfo *res;
+	addrinfo *addressInfo;
 
-	std::snprintf(portStr, sizeof(portStr), "%d", port);
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+	std::snprintf(portString, sizeof(portString), "%d", port);
 
 	std::memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
@@ -259,47 +282,49 @@ int Server::createListener(const std::string &host, int port)
 		hostArg = host.c_str();
 	}
 
-	err = getaddrinfo(hostArg, portStr, &hints, &res);
+	err = getaddrinfo(hostArg, portString, &hints, &addressInfo);
 	if (err != 0)
 	{
 		std::cerr << "getaddrinfo: " << gai_strerror(err) << std::endl;
 		return -1;
 	}
 
-	fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	if (fd < 0)
+	fileDescriptor = socket(addressInfo->ai_family, addressInfo->ai_socktype,
+	                        addressInfo->ai_protocol);
+	if (fileDescriptor < 0)
 	{
 		perror("socket");
-		freeaddrinfo(res);
+		freeaddrinfo(addressInfo);
 		return -1;
 	}
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-	if (res->ai_family == AF_INET6)
+	setsockopt(fileDescriptor, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+	if (addressInfo->ai_family == AF_INET6)
 	{
 		// Otherwise a wildcard IPv6 listener also claims the IPv4 port, and a
 		// separately configured IPv4 listener on that port fails to bind.
-		setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt));
+		setsockopt(fileDescriptor, IPPROTO_IPV6, IPV6_V6ONLY, &opt,
+		           sizeof(opt));
 	}
-	if (bind(fd, res->ai_addr, res->ai_addrlen) < 0)
+	if (bind(fileDescriptor, addressInfo->ai_addr, addressInfo->ai_addrlen) < 0)
 	{
 		perror("bind");
-		close(fd);
-		freeaddrinfo(res);
+		close(fileDescriptor);
+		freeaddrinfo(addressInfo);
 		return -1;
 	}
-	freeaddrinfo(res);
+	freeaddrinfo(addressInfo);
 
-	if (listen(fd, 1024) < 0) // TODO: Magic number
+	if (listen(fileDescriptor, LISTEN_BACKLOG) < 0)
 	{
 		perror("listen");
-		close(fd);
+		close(fileDescriptor);
 		return -1;
 	}
-	if (setNonblock(fd) < 0)
+	if (setNonblock(fileDescriptor) < 0)
 	{
 		perror("fcntl");
-		close(fd);
+		close(fileDescriptor);
 		return -1;
 	}
-	return fd;
+	return fileDescriptor;
 }

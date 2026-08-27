@@ -18,7 +18,7 @@
 class HttpResponseBuilder
 {
 private:
-	static std::string sanitizeHeaderValue(const std::string &s);
+	static std::string sanitizeHeaderValue(const std::string &str);
 
 public:
 	static std::string build(const HttpResponse &res);

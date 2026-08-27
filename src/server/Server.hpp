@@ -13,6 +13,7 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include <cstddef>
 #include <map>
 #include <poll.h>
 #include <string>
@@ -25,24 +26,25 @@ class Server
 {
 public:
 	Server(const MainConfig &mainConfig);
-	~Server();
+	~Server(void);
 
-	bool startServer();
-	void runServer();
+	bool startServer(void);
+	void runServer(void);
 
 private:
-	const MainConfig &_mainConfig;
-	std::vector<int> _listeners;
-	std::map<int, std::string> _listenerAddressPortPairs;
-	std::vector<pollfd> _pfds;
-	std::map<int, Client> _clients;
+	// NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+	const MainConfig &mainConfig;
+	std::vector<int> listenerFileDescriptors;
+	std::map<int, std::string> listenerAddressPortPairs;
+	std::vector<pollfd> pollFds;
+	std::map<int, Client> clients;
 
-	bool clientEventHandler(size_t i);
-	void acceptClient(int listener_fd);
-	void removeClient(size_t i);
-	void syncEvents(size_t i, const Client &client);
+	bool clientEventHandler(std::size_t pollFdIndex);
+	void acceptClient(int listenerFileDescriptor);
+	void removeClient(std::size_t pollFdIndex);
+	void syncEvents(std::size_t pollFdIndex, const Client &client);
 
-	static int setNonblock(int fd);
+	static int setNonblock(int fileDescriptor);
 	static int createListener(const std::string &host, int port);
 
 	Server(const Server &);

@@ -13,6 +13,7 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
+#include <cstddef>
 #include <string>
 
 #include "HttpRequestParser.hpp"
@@ -24,28 +25,28 @@ class HttpConfig;
 class Client
 {
 public:
-	Client();
+	Client(void);
 	Client(const Client &copy);
 	Client &operator=(const Client &copy);
-	~Client();
+	~Client(void);
 
-	bool writeFlag() const;
-	bool closeFlag() const;
+	bool writeFlag(void) const;
+	bool closeFlag(void) const;
 
 	void setUp(const HttpConfig &httpConfig,
 	           const std::string &addressPortPair);
 
-	void onRecv(int fd);
-	void onSend(int fd);
+	void onRecv(int fileDescriptor);
+	void onSend(int fileDescriptor);
 
 private:
-	std::string _send_buf;
-	bool _close;
-	const HttpConfig *_httpConfig;
-	std::string _addressPortPair;
-	HttpRequestParser _parser;
+	std::string sendBuffer;
+	bool shouldClose;
+	const HttpConfig *httpConfig;
+	std::string addressPortPair;
+	HttpRequestParser requestParser;
 
-	void handleRequest();
+	void handleRequest(void);
 	// TODO: Replace with real request handling, driven by the resolved config
 	void queuePlainTextResponse(int statusCode, const std::string &description,
 	                            const std::string &body);
