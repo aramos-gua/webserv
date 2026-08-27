@@ -1,0 +1,5 @@
+STATUS 204
+VERSION HTTP/1.1
+HEADER Date: Sun, 06 Nov 1994 08:49:37 GMT
+BODY
+should not appear

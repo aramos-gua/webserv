@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:26:17 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/25 21:59:10 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 20:20:31 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,17 +16,17 @@
 #include <map>
 #include <string>
 
+#include "HttpStatusCode.hpp"
+#include "HttpVersion.hpp"
+
 struct HttpResponse
 {
-	int statusCode;
-	std::string version;
-	std::string description;
-
+	HttpVersion version;
+	HttpStatusCode statusCode;
 	std::map<std::string, std::string> headers;
-
 	std::string body;
 
-	HttpResponse(void): statusCode(200), version("HTTP/1.0"), description("OK")
+	HttpResponse(void): statusCode(OK), version(HTTP_1_1)
 	{
 	}
 };

@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/25 21:59:22 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 19:51:09 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,11 +17,11 @@
 
 class HttpResponseBuilder
 {
-private:
-	static std::string sanitizeHeaderValue(const std::string &str);
-
 public:
 	static std::string build(const HttpResponse &res);
+
+private:
+	static std::string sanitizeHeaderValue(const std::string &str);
 };
 
 #endif

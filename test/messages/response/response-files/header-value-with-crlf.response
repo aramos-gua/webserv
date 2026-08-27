@@ -1,0 +1,6 @@
+STATUS 200
+VERSION HTTP/1.1
+HEADER X-Evil: a\r\nInjected: yes
+HEADER Date: Sun, 06 Nov 1994 08:49:37 GMT
+BODY
+hi

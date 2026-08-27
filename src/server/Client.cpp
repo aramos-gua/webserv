@@ -16,7 +16,6 @@
 
 #include "Client.hpp"
 #include "HttpConfig.hpp"
-#include "HttpStatusCodeHelpers.hpp"
 #include "ServerConfig.hpp"
 #include "StringBase.hpp"
 #include "StringHelpers.hpp"
@@ -174,8 +173,6 @@ void Client::queuePlainTextResponse(HttpStatusCode statusCode,
 	HttpResponse response;
 
 	response.statusCode = statusCode;
-	response.description =
-		HttpStatusCodeHelpers::getReasonPhraseForStatusCode(statusCode);
 	response.headers["Content-Type"] = "text/plain";
 	response.body = body;
 	sendBuffer += HttpResponseBuilder::build(response);
