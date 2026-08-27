@@ -87,6 +87,7 @@ private:
 	                                                 std::size_t terminatorPos);
 	static std::vector<std::string> splitOnCommas(const std::string &str);
 	static bool isValidFieldName(const std::string &fieldName);
+	static bool isValidOriginFormTarget(const std::string &target);
 	static std::string trim(const std::string &str);
 	static bool isValidContentLength(const std::string &str, std::size_t &out);
 	static bool isValidChunkSize(const std::string &str, std::size_t &out);

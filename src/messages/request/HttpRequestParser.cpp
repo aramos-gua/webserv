@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 18:31:42 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 18:50:07 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -113,6 +113,22 @@ bool HttpRequestParser::isValidFieldName(const std::string &fieldName)
 		unsigned char character = static_cast<unsigned char>(fieldName[i]);
 		if (!isalnum(character) && TOKEN_SYMBOLS.find(static_cast<char>(
 									   character)) == std::string::npos)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool HttpRequestParser::isValidOriginFormTarget(const std::string &target)
+{
+	if (target.empty() || target[0] != '/')
+	{
+		return false;
+	}
+	for (std::size_t i = 0; i < target.size(); ++i)
+	{
+		if (!isprint(static_cast<unsigned char>(target[i])))
 		{
 			return false;
 		}
@@ -295,6 +311,13 @@ bool HttpRequestParser::parseRequestLine(void)
 	if (!HttpMethodHelpers::getWhetherMethodIsImplemented(request.getMethod()))
 	{
 		return fail(NOT_IMPLEMENTED);
+	}
+	// NOTE: CONNECT and OPTIONS don't necessarily use origin-form targets, but
+	// as it stands, both would have been caught by the previous
+	// NOT_IMPLEMENTED block anyway
+	if (!isValidOriginFormTarget(targetField))
+	{
+		return fail(BAD_REQUEST);
 	}
 	request.setPath(targetField);
 	state = PARSE_HEADERS;

@@ -112,6 +112,30 @@ HEADERS:
 BODY: 0 bytes"
 	run_request_test
 
+	export TEST_NAME="Origin-form target carrying a query string"
+	export REQUEST_FILE="target-with-query-string.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: GET
+PATH: /search?q=hello&lang=en
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+BODY: 0 bytes"
+	run_request_test
+
+	export TEST_NAME="Origin-form target with percent-encoded high bytes"
+	export REQUEST_FILE="target-percent-encoded.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: GET
+PATH: /caf%c3%a9/menu
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+BODY: 0 bytes"
+	run_request_test
+
 	export TEST_NAME="Request with no headers at all"
 	export REQUEST_FILE="no-headers.http"
 	export EXPECTED="\
@@ -460,6 +484,48 @@ STATUS: 400 Bad Request"
 	# field, no repeated or stray spaces, no missing field.
 	export TEST_NAME="Request line with trailing garbage"
 	export REQUEST_FILE="request-line-trailing-garbage.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Target in absolute-form rather than origin-form"
+	export REQUEST_FILE="target-absolute-form.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Target in authority-form rather than origin-form"
+	export REQUEST_FILE="target-authority-form.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Target in asterisk-form rather than origin-form"
+	export REQUEST_FILE="target-asterisk-form.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Target containing a control character"
+	export REQUEST_FILE="target-with-control-character.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Target containing unencoded high bytes"
+	export REQUEST_FILE="target-with-high-bytes.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Target containing a delete character"
+	export REQUEST_FILE="target-with-delete-character.http"
 	export EXPECTED="\
 RESULT: INVALID
 STATUS: 400 Bad Request"
