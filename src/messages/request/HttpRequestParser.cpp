@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 14:06:44 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 15:46:35 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -172,10 +172,9 @@ bool HttpRequestParser::isValidContentLength(const std::string &str,
 	return true;
 }
 
-void HttpRequestParser::reset(void)
+void HttpRequestParser::resetInPreparationForNextRequest(void)
 {
 	state = PARSE_REQUEST_LINE;
-	buffer.clear();
 	request = HttpRequest();
 	errorStatusCode = NONE;
 	bodyBytesNeeded = 0;
@@ -190,6 +189,11 @@ const HttpRequest &HttpRequestParser::getRequest(void) const
 HttpStatusCode HttpRequestParser::getErrorStatusCode(void) const
 {
 	return errorStatusCode;
+}
+
+std::size_t HttpRequestParser::getUnparsedByteCount(void) const
+{
+	return buffer.size();
 }
 
 bool HttpRequestParser::parseRequestLine(void)
@@ -359,11 +363,11 @@ HttpRequestParser::Result HttpRequestParser::feed(const char *data,
 	{
 		return ERROR;
 	}
+	buffer.append(data, len);
 	if (state == PARSE_DONE)
 	{
 		return COMPLETE;
 	}
-	buffer.append(data, len);
 	bool progress = true;
 	while (progress)
 	{

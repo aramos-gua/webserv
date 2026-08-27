@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:58:38 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 13:27:33 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 15:42:23 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,6 +80,15 @@ static void printRequest(const HttpRequest &request)
 	}
 }
 
+static void printUnparsedByteCount(const HttpRequestParser &parser)
+{
+	if (parser.getUnparsedByteCount() > 0)
+	{
+		std::cout << "LEFTOVER: " << parser.getUnparsedByteCount() << " bytes"
+				  << std::endl;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	std::string filePath;
@@ -143,6 +152,7 @@ int main(int argc, char **argv)
 		{
 			std::cout << "RESULT: COMPLETE" << std::endl;
 			printRequest(parser.getRequest());
+			printUnparsedByteCount(parser);
 		}
 		else if (result == HttpRequestParser::ERROR)
 		{

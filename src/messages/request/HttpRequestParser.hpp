@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 14:05:42 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 15:46:35 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,9 +39,9 @@ public:
 
 	Result feed(const char *data, std::size_t len);
 	const HttpRequest &getRequest(void) const;
-	// Only meaningful once feed() has returned ERROR.
 	HttpStatusCode getErrorStatusCode(void) const;
-	void reset(void);
+	std::size_t getUnparsedByteCount(void) const;
+	void resetInPreparationForNextRequest(void);
 
 private:
 	enum State

@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:39:35 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/27 13:22:17 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 15:46:35 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,7 +85,7 @@ void Client::onRecv(int fileDescriptor)
 	if (result == HttpRequestParser::COMPLETE)
 	{
 		handleRequest();
-		requestParser.reset();
+		requestParser.resetInPreparationForNextRequest();
 	}
 	else if (result == HttpRequestParser::ERROR)
 	{

@@ -254,6 +254,37 @@ HEADERS:
 BODY: 0 bytes"
 	run_request_test
 
+	# Bytes arriving after a complete request belong to the next request on the
+	# connection and must survive both feed() and reset(). The count is exactly
+	# the length of the second request below.
+	export TEST_NAME="Pipelined request is kept as leftover"
+	export REQUEST_FILE="pipelined-requests.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: GET
+PATH: /first
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+BODY: 0 bytes
+LEFTOVER: 43 bytes"
+	run_request_test
+
+	export TEST_NAME="Pipelined request following a body is kept as leftover"
+	export REQUEST_FILE="pipelined-after-body.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: POST
+PATH: /upload
+VERSION: HTTP/1.1
+HEADERS:
+  content-length: \"11\"
+  host: \"example.com\"
+BODY: 11 bytes
+hello world
+LEFTOVER: 43 bytes"
+	run_request_test
+
 	# A CRLF inside the body must be taken as body content, not as the end of
 	# anything, so the expected body is spelled out with a real carriage return.
 	export TEST_NAME="Body containing a CRLF is not truncated"
