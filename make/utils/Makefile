@@ -24,6 +24,7 @@ MAKE_DIR :=				$(REPO_DIR)/make
 
 SRCS_BASE :=			CaseInsensitiveComparator.cpp \
 						ConfigTypeHelpers.cpp \
+						HttpDateHelpers.cpp \
 						HttpFieldHelpers.cpp \
 						HttpSyntax.cpp \
 						HttpMethodHelpers.cpp \

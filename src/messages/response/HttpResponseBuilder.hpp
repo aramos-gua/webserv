@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 19:51:09 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 21:39:22 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,8 +19,6 @@ class HttpResponseBuilder
 {
 public:
 	static std::string build(const HttpResponse &res);
-
-private:
 };
 
 #endif
