@@ -120,7 +120,8 @@ void Server::runServer(void)
 			}
 			--readyCount;
 			int fileDescriptor = pollFds[i].fd;
-			if (listenerAddressPortPairs.count(fileDescriptor))
+			if (listenerAddressPortPairs.find(fileDescriptor) !=
+			    listenerAddressPortPairs.end())
 			{
 				acceptClient(fileDescriptor);
 				++i;

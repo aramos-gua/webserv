@@ -45,8 +45,8 @@ std::string HttpResponseBuilder::build(const HttpResponse &res)
 		out << headerIterator->first << ": "
 			<< sanitizeHeaderValue(headerIterator->second) << "\r\n";
 	}
-	bool hasConnection =
-		res.headers.count("Connection") || res.headers.count("connection");
+	bool hasConnection = res.headers.find("Connection") != res.headers.end() ||
+	                     res.headers.find("connection") != res.headers.end();
 	if (!hasConnection)
 	{
 		out << "Connection: close\r\n";

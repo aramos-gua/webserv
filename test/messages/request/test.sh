@@ -208,6 +208,21 @@ HEADERS:
 BODY: 0 bytes"
 	run_request_test
 
+	# The same applies to an empty Host: HTTP/1.0 imposes no requirement on it
+	# either way, so the field is kept as it arrived.
+	export TEST_NAME="Empty Host on HTTP/1.0 is accepted"
+	export REQUEST_FILE="empty-host-http-1-0.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: GET
+PATH: /
+VERSION: HTTP/1.0
+HEADERS:
+  accept: \"*/*\"
+  host: \"\"
+BODY: 0 bytes"
+	run_request_test
+
 	# HTTP/1.0 predates virtual hosting, so a missing Host is fine there. This
 	# is the negative control for the HTTP/1.1 requirement below.
 	export TEST_NAME="No Host on HTTP/1.0 is accepted"
@@ -366,6 +381,30 @@ STATUS: 400 Bad Request"
 
 	export TEST_NAME="Duplicate Host"
 	export REQUEST_FILE="duplicate-host.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Missing Host on HTTP/1.1"
+	export REQUEST_FILE="missing-host.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	# A Host that is present but empty names no authority, which RFC 9112
+	# counts as an invalid field value rather than a present one.
+	export TEST_NAME="Empty Host on HTTP/1.1"
+	export REQUEST_FILE="empty-host.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	# It is the count of Host lines that is illegal, not their disagreeing.
+	export TEST_NAME="Duplicate Host carrying identical values"
+	export REQUEST_FILE="duplicate-host-identical.http"
 	export EXPECTED="\
 RESULT: ERROR
 STATUS: 400 Bad Request"

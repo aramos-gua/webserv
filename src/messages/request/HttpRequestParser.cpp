@@ -248,9 +248,25 @@ bool HttpRequestParser::parseHeaders(void)
 	buffer.erase(0, pos + 2);
 	if (line.empty())
 	{
-		if (request.headers.count("content-length"))
+		// RFC 9112 requires a server to answer 400 to an HTTP/1.1 request that
+		// lacks a Host, and to one whose Host value is invalid — an empty
+		// value included, since it names no authority. HTTP/1.0 predates
+		// virtual hosting and carries neither requirement, so the check is
+		// deliberately version-specific.
+		std::map<std::string, std::string>::const_iterator hostField =
+			request.headers.find("host");
+		if (request.version == "HTTP/1.1" &&
+		    (hostField == request.headers.end() || hostField->second.empty()))
 		{
-			if (!isValidContentLength(request.headers["content-length"],
+			state = PARSE_ERROR;
+			errorStatusCode = BAD_REQUEST;
+			return false;
+		}
+		std::map<std::string, std::string>::const_iterator contentLengthField =
+			request.headers.find("content-length");
+		if (contentLengthField != request.headers.end())
+		{
+			if (!isValidContentLength(contentLengthField->second,
 			                          bodyBytesNeeded))
 			{
 				state = PARSE_ERROR;
@@ -305,7 +321,8 @@ bool HttpRequestParser::parseHeaders(void)
 		request.headers[key] = val;
 		return true;
 	}
-	if (SINGLE_OCCURRENCE_FIELD_NAMES.count(key))
+	if (SINGLE_OCCURRENCE_FIELD_NAMES.find(key) !=
+	    SINGLE_OCCURRENCE_FIELD_NAMES.end())
 	{
 		state = PARSE_ERROR;
 		errorStatusCode = BAD_REQUEST;
