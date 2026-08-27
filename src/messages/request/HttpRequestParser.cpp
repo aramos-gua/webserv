@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 18:59:35 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 19:18:29 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -524,29 +524,29 @@ HttpRequestParser::Result HttpRequestParser::feed(const char *data,
 	while (progress)
 	{
 		progress = false;
-		if (state == PARSE_REQUEST_LINE)
+		switch (state)
 		{
+		case PARSE_REQUEST_LINE:
 			progress = parseRequestLine();
-		}
-		else if (state == PARSE_HEADERS)
-		{
+			break;
+		case PARSE_HEADERS:
 			progress = parseHeaders();
-		}
-		else if (state == PARSE_BODY)
-		{
+			break;
+		case PARSE_BODY:
 			progress = parseBody();
-		}
-		else if (state == PARSE_CHUNK_SIZE)
-		{
+			break;
+		case PARSE_CHUNK_SIZE:
 			progress = parseChunkSize();
-		}
-		else if (state == PARSE_CHUNK_DATA)
-		{
+			break;
+		case PARSE_CHUNK_DATA:
 			progress = parseChunkData();
-		}
-		else if (state == PARSE_TRAILERS)
-		{
+			break;
+		case PARSE_TRAILERS:
 			progress = parseTrailers();
+			break;
+		case PARSE_DONE:
+		case PARSE_ERROR:
+			break;
 		}
 	}
 	if (state == PARSE_DONE)
