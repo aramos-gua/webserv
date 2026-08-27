@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:26:17 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 20:20:31 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 21:10:00 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,30 +20,48 @@
 #include "HttpStatusCode.hpp"
 #include "HttpVersion.hpp"
 
-struct HttpResponse
+class HttpResponse
 {
+public:
+	typedef std::map<std::string, std::string> t_headers;
+
+	HttpResponse(void);
+	HttpResponse(const HttpResponse &other);
+	HttpResponse &operator=(const HttpResponse &other);
+	~HttpResponse(void);
+
+	HttpVersion getVersion(void) const;
+	HttpStatusCode getStatusCode(void) const;
+	const t_headers &getHeaders(void) const;
+	const std::string &getBody(void) const;
+
+	// The length of the body whether it is held here or not, which is what
+	// Content-Length is computed from.
+	std::size_t getBodyLength(void) const;
+	bool getWhetherBodyIsExternal(void) const;
+
+	void setVersion(HttpVersion version);
+	void setStatusCode(HttpStatusCode statusCode);
+	void setHeader(const std::string &name, const std::string &value);
+
+	// The two bodies are set through separate calls that each clear the other,
+	// so a response cannot end up claiming an external length while also
+	// holding bytes of its own — the one inconsistency these fields allow.
+	void setBody(const std::string &body);
+	void setExternalBody(std::size_t length);
+
+private:
 	HttpVersion version;
 	HttpStatusCode statusCode;
-	std::map<std::string, std::string> headers;
+	t_headers headers;
 
 	// The body is either held here, or it lives outside the response and only
 	// its length is recorded. An external body is sent by whoever owns its file
-	// descriptor; the response needs nothing from it but the length, which is
-	// what Content-Length is computed from.
+	// descriptor; the response never holds that descriptor, which is what keeps
+	// this a copyable value with nothing to decide about copying.
 	std::string body;
 	bool bodyIsExternal;
 	std::size_t externalBodyLength;
-
-	HttpResponse(void)
-		: version(HTTP_1_1), statusCode(OK), bodyIsExternal(false),
-		  externalBodyLength(0)
-	{
-	}
-
-	std::size_t getBodyLength(void) const
-	{
-		return bodyIsExternal ? externalBodyLength : body.size();
-	}
 };
 
 #endif

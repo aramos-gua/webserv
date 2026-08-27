@@ -430,6 +430,24 @@ BODY: 0 bytes
 FRAMING: OK"
 	run_body_test
 
+	# An inline body set after an external one must clear it completely: the
+	# response cannot both name a length it does not hold and hold bytes of
+	# its own. large.txt is 20000 bytes, so a Content-Length of 5 is the
+	# assertion that the external length really was discarded.
+	export TEST_NAME="An inline body supersedes an external one"
+	export RESPONSE_FILE="body-file-then-inline.response"
+	export EXPECTED="\
+STATUS-LINE: HTTP/1.1 200 OK
+HEADERS:
+  Connection: close
+  Date: <IMF-fixdate>
+  Server: penguinx
+  Content-Length: 5
+BODY: 5 bytes
+short
+FRAMING: OK"
+	run_body_test
+
 	export TEST_NAME="External body larger than one read"
 	export RESPONSE_FILE="body-from-large-file.response"
 	export EXPECTED="\

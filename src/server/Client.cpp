@@ -185,9 +185,9 @@ void Client::queuePlainTextResponse(HttpStatusCode statusCode,
 {
 	HttpResponse response;
 
-	response.statusCode = statusCode;
-	response.headers["Content-Type"] = "text/plain";
-	response.body = body;
+	response.setStatusCode(statusCode);
+	response.setHeader("Content-Type", "text/plain");
+	response.setBody(body);
 	discardSentBytes();
 	sendBuffer += HttpResponseBuilder::build(response);
 }

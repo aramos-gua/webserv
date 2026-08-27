@@ -130,7 +130,7 @@ static void applyHeaderDirective(HttpResponse &response,
 	{
 		headerValue.erase(0, 1);
 	}
-	response.headers[name] = unescape(headerValue);
+	response.setHeader(name, unescape(headerValue));
 }
 
 static void applyStatusDirective(HttpResponse &response,
@@ -143,7 +143,7 @@ static void applyStatusDirective(HttpResponse &response,
 	{
 		throw std::runtime_error("Invalid status code \"" + value + "\"");
 	}
-	response.statusCode = static_cast<HttpStatusCode>(statusCode);
+	response.setStatusCode(static_cast<HttpStatusCode>(statusCode));
 }
 
 static HttpResponse readResponseSpecification(const std::string &text,
@@ -177,9 +177,8 @@ static HttpResponse readResponseSpecification(const std::string &text,
 				throw std::runtime_error("Couldn't stat body file \"" + value +
 				                         "\"");
 			}
-			response.bodyIsExternal = true;
-			response.externalBodyLength =
-				static_cast<std::size_t>(fileStatus.st_size);
+			response.setExternalBody(
+				static_cast<std::size_t>(fileStatus.st_size));
 			bodyFilePath = resolved;
 			continue;
 		}
@@ -191,7 +190,7 @@ static HttpResponse readResponseSpecification(const std::string &text,
 			{
 				body.erase(body.size() - 1);
 			}
-			response.body = body;
+			response.setBody(body);
 			return response;
 		}
 		if (directive == "STATUS")
@@ -200,8 +199,8 @@ static HttpResponse readResponseSpecification(const std::string &text,
 		}
 		else if (directive == "VERSION")
 		{
-			response.version =
-				HttpVersionHelpers::getHttpVersionForString(value);
+			response.setVersion(
+				HttpVersionHelpers::getHttpVersionForString(value));
 		}
 		else if (directive == "HEADER")
 		{
@@ -402,7 +401,10 @@ int main(int argc, char **argv)
 			readWholeFile(filePath), filePath, bodyFilePath);
 		std::string built = HttpResponseBuilder::build(response);
 
-		if (!bodyFilePath.empty())
+		// Asks the response whether the body is external rather than whether a
+		// file was named, so that a later BODY superseding a BODYFILE is
+		// honoured here the same way the builder honours it.
+		if (response.getWhetherBodyIsExternal() && !bodyFilePath.empty())
 		{
 			int bodyFileDescriptor = open(bodyFilePath.c_str(), O_RDONLY);
 			if (bodyFileDescriptor < 0)
@@ -413,7 +415,7 @@ int main(int argc, char **argv)
 			// Drained the way Client drains it: repeatedly, a bounded piece at
 			// a time, until the promised length has been met. --read-size 1
 			// forces the most fragmented case, as --chunk 1 does for requests.
-			std::size_t remaining = response.externalBodyLength;
+			std::size_t remaining = response.getBodyLength();
 			while (remaining > 0)
 			{
 				ssize_t appended = ResponseBodyReader::appendUpTo(

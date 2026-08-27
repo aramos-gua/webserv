@@ -95,18 +95,18 @@ static std::string getVersionString(HttpVersion version)
 std::string HttpResponseBuilder::build(const HttpResponse &res)
 {
 	std::ostringstream out;
-	out << getVersionString(res.version) << " "
-		<< static_cast<int>(res.statusCode) << " "
-		<< getReasonPhrase(res.statusCode) << "\r\n";
+	out << getVersionString(res.getVersion()) << " "
+		<< static_cast<int>(res.getStatusCode()) << " "
+		<< getReasonPhrase(res.getStatusCode()) << "\r\n";
 	// Field names are case-insensitive, so the two the builder decides for
 	// itself have to be recognised however the caller spelled them. Matching
 	// exact spellings let "Content-length" through, and the response then went
 	// out carrying two Content-Length headers — which is how a recipient and
 	// the next hop come to disagree about where the body ends.
-	std::map<std::string, std::string>::const_iterator headerIterator;
+	HttpResponse::t_headers::const_iterator headerIterator;
 	std::set<std::string> callerSuppliedNames;
-	for (headerIterator = res.headers.begin();
-	     headerIterator != res.headers.end(); ++headerIterator)
+	for (headerIterator = res.getHeaders().begin();
+	     headerIterator != res.getHeaders().end(); ++headerIterator)
 	{
 		std::string lowercaseName =
 			StringHelpers::toLowercase(headerIterator->first);
@@ -145,15 +145,15 @@ std::string HttpResponseBuilder::build(const HttpResponse &res)
 	// with no Content-Length has nothing to say where it ends, so a recipient
 	// reading a persistent connection would take it for the start of the next
 	// response — the framing hole this field exists to close.
-	if (!HttpStatusCodeHelpers::takesNoValue(res.statusCode))
+	if (!HttpStatusCodeHelpers::takesNoValue(res.getStatusCode()))
 	{
 		out << "Content-Length: " << res.getBodyLength() << "\r\n";
 		out << "\r\n";
 		// An external body is not here to be written. build() produces the head
 		// and the caller streams the rest from whatever holds it.
-		if (!res.bodyIsExternal)
+		if (!res.getWhetherBodyIsExternal())
 		{
-			out << res.body;
+			out << res.getBody();
 		}
 		return out.str();
 	}
