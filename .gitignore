@@ -9,8 +9,3 @@ log/
 # Test config files
 assets/config/conf.d/
 assets/config/sites-enabled/
-
-# TODO: potentially remove these later?
-test/client/client
-test/server/server
-en.subject.pdf
