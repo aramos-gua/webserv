@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/25 21:59:05 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 14:05:42 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,6 +66,8 @@ private:
 	bool parseHeaders(void);
 	bool parseBody(void);
 
+	static std::size_t getMinimumConfirmedLineLength(const std::string &str,
+	                                                 std::size_t terminatorPos);
 	static std::string trim(const std::string &str);
 	static bool isValidContentLength(const std::string &str, std::size_t &out);
 };

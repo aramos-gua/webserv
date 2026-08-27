@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/25 21:58:32 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 14:06:44 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,6 +66,25 @@ HttpRequestParser::~HttpRequestParser(void)
 /* ************************************************************************** */
 /*                               MEMBER FUNCTIONS                             */
 /* ************************************************************************** */
+std::size_t HttpRequestParser::getMinimumConfirmedLineLength(
+	const std::string &str, std::size_t terminatorPos)
+{
+	if (terminatorPos != std::string::npos)
+	{
+		return terminatorPos;
+	}
+	// Without a terminator the line is at least the whole buffer, except that
+	// a trailing CR may be the first half of the CRLF that ends it, and so
+	// isn't yet known to be content. Without that allowance a line of exactly
+	// the maximum length would be rejected whenever its CR and LF happened to
+	// arrive in separate reads.
+	if (!str.empty() && str[str.size() - 1] == '\r')
+	{
+		return str.size() - 1;
+	}
+	return str.size();
+}
+
 std::string HttpRequestParser::trim(const std::string &str)
 {
 	std::size_t start;
@@ -138,13 +157,21 @@ bool HttpRequestParser::parseRequestLine(void)
 {
 	static const std::size_t MAX_REQUEST_LINE = 8192;
 	std::size_t pos = buffer.find("\r\n");
+	// The line is exactly pos bytes once its terminator has arrived, and at
+	// least buffer.size() bytes while it hasn't. An oversized line can never
+	// become valid either way, so the limit is checked before the terminator
+	// is required — otherwise a line that arrives complete in a single read
+	// would never be measured at all.
+	std::size_t minimumConfirmedLineLength =
+		getMinimumConfirmedLineLength(buffer, pos);
+	if (minimumConfirmedLineLength > MAX_REQUEST_LINE)
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = URI_TOO_LONG;
+		return false;
+	}
 	if (pos == std::string::npos)
 	{
-		if (buffer.size() > MAX_REQUEST_LINE)
-		{
-			state = PARSE_ERROR;
-			errorStatusCode = URI_TOO_LONG;
-		}
 		return false;
 	}
 	std::string line = buffer.substr(0, pos);
@@ -164,13 +191,18 @@ bool HttpRequestParser::parseHeaders(void)
 {
 	static const std::size_t MAX_HEADERS_LINE = 8192;
 	std::size_t pos = buffer.find("\r\n");
+	// Measured the same way as the request line above: whether or not the
+	// terminator has arrived, a line already over the limit is rejected.
+	std::size_t minimumConfirmedLineLength =
+		getMinimumConfirmedLineLength(buffer, pos);
+	if (minimumConfirmedLineLength > MAX_HEADERS_LINE)
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
+		return false;
+	}
 	if (pos == std::string::npos)
 	{
-		if (buffer.size() > MAX_HEADERS_LINE)
-		{
-			state = PARSE_ERROR;
-			errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
-		}
 		return false;
 	}
 	std::string line = buffer.substr(0, pos);

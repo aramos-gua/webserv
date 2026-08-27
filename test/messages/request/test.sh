@@ -27,16 +27,24 @@ run_request_test() {
 	export OPTIONS=""
 }
 
-# Check only the result and status lines of the dump, for requests whose full
-# dump would be impractically large to write out
+# As above, but comparing only the result and status lines, for requests whose
+# full dump would be impractically large to write out
 run_result_test() {
 	REQUEST_FILE="$REQUESTS_DIR/$REQUEST_FILE"
-	export ACTUAL="$($PARSER $OPTIONS $REQUEST_FILE 2>&1 \
+	export WHOLE="$($PARSER $OPTIONS $REQUEST_FILE 2>&1 \
 		| grep -E '^(RESULT|STATUS):')"
-	cmp -s <(echo "$EXPECTED") <(echo "$ACTUAL") \
-		&& (echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME") \
-		|| (echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
-			&& diff <(echo "$EXPECTED") <(echo "$ACTUAL"))
+	export CHUNKED="$($PARSER --chunk 1 $OPTIONS $REQUEST_FILE 2>&1 \
+		| grep -E '^(RESULT|STATUS):')"
+	if ! cmp -s <(echo "$EXPECTED") <(echo "$WHOLE"); then
+		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+			&& diff <(echo "$EXPECTED") <(echo "$WHOLE")
+	elif ! cmp -s <(echo "$WHOLE") <(echo "$CHUNKED"); then
+		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+			&& echo "Byte-at-a-time delivery gave a different result:" \
+			&& diff <(echo "$WHOLE") <(echo "$CHUNKED")
+	else
+		echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME"
+	fi
 	export OPTIONS=""
 }
 
@@ -262,35 +270,29 @@ RESULT: ERROR
 STATUS: 431 Request Header Fields Too Large"
 	run_result_test
 
-	# KNOWN BUG (see PLAN.md step 4): the request line and header line size
-	# limits only apply while the parser is still waiting for a CRLF, so an
-	# oversized line that arrives complete in a single read slips through. The
-	# two pairs of tests below pin both halves of that divergence, and should
-	# collapse into one run_request_test each once the limits are enforced on
-	# the line itself.
-	export TEST_NAME="Oversized request line, arriving a byte at a time"
+	export TEST_NAME="Oversized request line"
 	export REQUEST_FILE="request-line-too-large.http"
-	export OPTIONS="--chunk 1"
 	export EXPECTED="\
 RESULT: ERROR
 STATUS: 414 URI Too Long"
 	run_result_test
 
-	export TEST_NAME="Oversized request line, arriving whole (limit not applied)"
-	export REQUEST_FILE="request-line-too-large.http"
-	export EXPECTED="RESULT: COMPLETE"
-	run_result_test
-
-	export TEST_NAME="Oversized header line, arriving a byte at a time"
+	export TEST_NAME="Oversized header line"
 	export REQUEST_FILE="headers-too-large.http"
-	export OPTIONS="--chunk 1"
 	export EXPECTED="\
 RESULT: ERROR
 STATUS: 431 Request Header Fields Too Large"
 	run_result_test
 
-	export TEST_NAME="Oversized header line, arriving whole (limit not applied)"
-	export REQUEST_FILE="headers-too-large.http"
+	# The limit is inclusive, and a line of exactly the maximum length must be
+	# accepted however its CR and LF happen to fall across reads.
+	export TEST_NAME="Request line of exactly the maximum length"
+	export REQUEST_FILE="request-line-at-limit.http"
+	export EXPECTED="RESULT: COMPLETE"
+	run_result_test
+
+	export TEST_NAME="Header line of exactly the maximum length"
+	export REQUEST_FILE="header-line-at-limit.http"
 	export EXPECTED="RESULT: COMPLETE"
 	run_result_test
 fi
