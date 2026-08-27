@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 18:50:07 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 18:59:35 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -250,28 +250,31 @@ bool HttpRequestParser::fail(HttpStatusCode statusCode)
 	return false;
 }
 
-bool HttpRequestParser::parseRequestLine(void)
+bool HttpRequestParser::readLine(std::size_t maxLength,
+                                 HttpStatusCode overflowStatusCode,
+                                 std::string &line)
 {
-	static const std::size_t MAX_REQUEST_LINE = 8192;
-	std::size_t pos = buffer.find(TERMINATOR);
-	// The line is exactly pos bytes once its terminator has arrived, and at
-	// least buffer.size() bytes while it hasn't. An oversized line can never
-	// become valid either way, so the limit is checked before the terminator
-	// is required — otherwise a line that arrives complete in a single read
-	// would never be measured at all.
-	std::size_t minimumConfirmedLineLength =
-		getMinimumConfirmedLineLength(buffer, pos);
-	if (minimumConfirmedLineLength > MAX_REQUEST_LINE)
+	std::size_t terminatorPos = buffer.find(TERMINATOR);
+	if (getMinimumConfirmedLineLength(buffer, terminatorPos) > maxLength)
 	{
-		return fail(URI_TOO_LONG);
+		return fail(overflowStatusCode);
 	}
-	if (pos == std::string::npos)
+	if (terminatorPos == std::string::npos)
 	{
 		return false;
 	}
-	std::string line = buffer.substr(0, pos);
-	buffer.erase(0, pos + 2);
+	line = buffer.substr(0, terminatorPos);
+	buffer.erase(0, terminatorPos + TERMINATOR.length());
+	return true;
+}
 
+bool HttpRequestParser::parseRequestLine(void)
+{
+	std::string line;
+	if (!readLine(MAX_LINE_LENGTH, URI_TOO_LONG, line))
+	{
+		return false;
+	}
 	// RFC 9112 spells the request line as exactly "method SP target SP
 	// version". Splitting on the two spaces rather than reading whitespace-
 	// separated tokens is what makes a fourth field, a missing field, a run of
@@ -326,22 +329,11 @@ bool HttpRequestParser::parseRequestLine(void)
 
 bool HttpRequestParser::parseHeaders(void)
 {
-	static const std::size_t MAX_HEADERS_LINE = 8192;
-	std::size_t pos = buffer.find(TERMINATOR);
-	// Measured the same way as the request line above: whether or not the
-	// terminator has arrived, a line already over the limit is rejected.
-	std::size_t minimumConfirmedLineLength =
-		getMinimumConfirmedLineLength(buffer, pos);
-	if (minimumConfirmedLineLength > MAX_HEADERS_LINE)
-	{
-		return fail(REQUEST_HEADER_FIELDS_TOO_LARGE);
-	}
-	if (pos == std::string::npos)
+	std::string line;
+	if (!readLine(MAX_LINE_LENGTH, REQUEST_HEADER_FIELDS_TOO_LARGE, line))
 	{
 		return false;
 	}
-	std::string line = buffer.substr(0, pos);
-	buffer.erase(0, pos + 2);
 	if (line.empty())
 	{
 		// RFC 9112 requires a server to answer 400 to an HTTP/1.1 request that
@@ -462,20 +454,11 @@ bool HttpRequestParser::appendToBodyWithinLimit(const std::string &data)
 
 bool HttpRequestParser::parseChunkSize(void)
 {
-	static const std::size_t MAX_CHUNK_SIZE_LINE = 8192;
-	std::size_t pos = buffer.find(TERMINATOR);
-	std::size_t minimumConfirmedLineLength =
-		getMinimumConfirmedLineLength(buffer, pos);
-	if (minimumConfirmedLineLength > MAX_CHUNK_SIZE_LINE)
-	{
-		return fail(BAD_REQUEST);
-	}
-	if (pos == std::string::npos)
+	std::string line;
+	if (!readLine(MAX_LINE_LENGTH, BAD_REQUEST, line))
 	{
 		return false;
 	}
-	std::string line = buffer.substr(0, pos);
-	buffer.erase(0, pos + 2);
 	// NOTE: chunk extensions are not supported. A slight violation of RFC 9112
 	// in favour of simplicity and not having to consider malicious uses that
 	// could slow down the server
@@ -524,20 +507,11 @@ bool HttpRequestParser::parseChunkData(void)
 
 bool HttpRequestParser::parseTrailers(void)
 {
-	static const std::size_t MAX_TRAILER_LINE = 8192;
-	std::size_t pos = buffer.find(TERMINATOR);
-	std::size_t minimumConfirmedLineLength =
-		getMinimumConfirmedLineLength(buffer, pos);
-	if (minimumConfirmedLineLength > MAX_TRAILER_LINE)
-	{
-		return fail(REQUEST_HEADER_FIELDS_TOO_LARGE);
-	}
-	if (pos == std::string::npos)
+	std::string line;
+	if (!readLine(MAX_LINE_LENGTH, REQUEST_HEADER_FIELDS_TOO_LARGE, line))
 	{
 		return false;
 	}
-	std::string line = buffer.substr(0, pos);
-	buffer.erase(0, pos + 2);
 	if (line.empty())
 	{
 		state = PARSE_DONE;

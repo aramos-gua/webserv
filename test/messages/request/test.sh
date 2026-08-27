@@ -928,8 +928,6 @@ RESULT: INVALID
 STATUS: 431 Request Header Fields Too Large"
 	run_result_test
 
-	# The limit is inclusive, and a line of exactly the maximum length must be
-	# accepted however its CR and LF happen to fall across reads.
 	export TEST_NAME="Request line of exactly the maximum length"
 	export REQUEST_FILE="request-line-at-limit.http"
 	export EXPECTED="RESULT: COMPLETE"
@@ -938,5 +936,29 @@ STATUS: 431 Request Header Fields Too Large"
 	export TEST_NAME="Header line of exactly the maximum length"
 	export REQUEST_FILE="header-line-at-limit.http"
 	export EXPECTED="RESULT: COMPLETE"
+	run_result_test
+
+	export TEST_NAME="Request line one byte under the maximum length"
+	export REQUEST_FILE="request-line-just-under-limit.http"
+	export EXPECTED="RESULT: COMPLETE"
+	run_result_test
+
+	export TEST_NAME="Request line one byte over the maximum length"
+	export REQUEST_FILE="request-line-just-over-limit.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 414 URI Too Long"
+	run_result_test
+
+	export TEST_NAME="Header line one byte under the maximum length"
+	export REQUEST_FILE="header-line-just-under-limit.http"
+	export EXPECTED="RESULT: COMPLETE"
+	run_result_test
+
+	export TEST_NAME="Header line one byte over the maximum length"
+	export REQUEST_FILE="header-line-just-over-limit.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 431 Request Header Fields Too Large"
 	run_result_test
 fi

@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 18:31:23 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 18:55:59 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,7 @@ private:
 	};
 
 	static const std::string TERMINATOR;
+	static const std::size_t MAX_LINE_LENGTH = 8192;
 
 	State state;
 	std::string buffer;
@@ -78,6 +79,8 @@ private:
 	bool parseChunkData(void);
 	bool parseTrailers(void);
 
+	bool readLine(std::size_t maxLength, HttpStatusCode overflowStatusCode,
+	              std::string &line);
 	bool startBody(void);
 	bool appendToBodyWithinLimit(const std::string &data);
 
