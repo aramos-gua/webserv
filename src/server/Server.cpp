@@ -140,7 +140,7 @@ bool Server::clientEventHandler(std::size_t pollFdIndex)
 	int fileDescriptor = pollFds[pollFdIndex].fd;
 	Client &client = clients[fileDescriptor];
 
-	if (!client.closeFlag() && (returnedEvents & POLLIN))
+	if (!client.getWhetherConnectionShouldClose() && (returnedEvents & POLLIN))
 	{
 		client.onRecv(fileDescriptor);
 	}
@@ -151,7 +151,8 @@ bool Server::clientEventHandler(std::size_t pollFdIndex)
 	// A client that wants to close may still have a response queued, so hold
 	// the connection open until everything buffered has been flushed.
 	if ((returnedEvents & (POLLERR | POLLHUP)) ||
-	    (client.closeFlag() && !client.writeFlag()))
+	    (client.getWhetherConnectionShouldClose() &&
+	     !client.getWhetherOutputIsPending()))
 	{
 		removeClient(pollFdIndex);
 		return false;
@@ -231,7 +232,7 @@ void Server::removeClient(std::size_t pollFdIndex)
 void Server::syncEvents(std::size_t pollFdIndex, const Client &client)
 {
 	pollFds[pollFdIndex].events = POLLIN;
-	if (client.writeFlag())
+	if (client.getWhetherOutputIsPending())
 	{
 		pollFds[pollFdIndex].events |= POLLOUT;
 	}

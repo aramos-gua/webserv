@@ -17,6 +17,7 @@
 #include <string>
 
 #include "HttpRequest.hpp"
+#include "HttpStatusCode.hpp"
 
 class HttpRequestParser
 {
@@ -38,7 +39,8 @@ public:
 
 	Result feed(const char *data, std::size_t len);
 	const HttpRequest &getRequest(void) const;
-	const std::string &getError(void) const;
+	// Only meaningful once feed() has returned ERROR.
+	HttpStatusCode getErrorStatusCode(void) const;
 	void reset(void);
 
 	static HttpRequest parse(const std::string &rawRequest);
@@ -56,7 +58,7 @@ private:
 	State state;
 	std::string buffer;
 	HttpRequest request;
-	std::string error;
+	HttpStatusCode errorStatusCode;
 
 	std::size_t maxBodySize;
 	std::size_t bodyBytesNeeded;

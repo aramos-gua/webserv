@@ -1,0 +1,3 @@
+# NOTE: HTTP is a CRLF protocol, so the request fixtures contain real
+# carriage returns and must survive checkout and checkin untouched
+test/messages/request/request-files/*.http -text

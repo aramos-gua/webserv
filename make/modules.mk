@@ -34,8 +34,8 @@ MODULE_DEPS_server :=				config/parsing \
 MODULE_DEPS_config/parsing :=		config/lexing \
 									utils
 MODULE_DEPS_config/lexing :=		utils
-MODULE_DEPS_messages/request :=
-MODULE_DEPS_messages/response :=
+MODULE_DEPS_messages/request :=		utils
+MODULE_DEPS_messages/response :=	utils
 MODULE_DEPS_utils :=
 
 # Recover the module names from the declarations above.

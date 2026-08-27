@@ -1,0 +1,5 @@
+GET /mixed HTTP/1.1
+HOST: Example.COM
+User-Agent:    spaced-out   
+X-Empty:
+

@@ -19,6 +19,7 @@
 #include "HttpRequestParser.hpp"
 #include "HttpResponse.hpp"
 #include "HttpResponseBuilder.hpp"
+#include "HttpStatusCode.hpp"
 
 class HttpConfig;
 
@@ -30,8 +31,8 @@ public:
 	Client &operator=(const Client &copy);
 	~Client(void);
 
-	bool writeFlag(void) const;
-	bool closeFlag(void) const;
+	bool getWhetherOutputIsPending(void) const;
+	bool getWhetherConnectionShouldClose(void) const;
 
 	void setUp(const HttpConfig &httpConfig,
 	           const std::string &addressPortPair);
@@ -48,7 +49,7 @@ private:
 
 	void handleRequest(void);
 	// TODO: Replace with real request handling, driven by the resolved config
-	void queuePlainTextResponse(int statusCode, const std::string &description,
+	void queuePlainTextResponse(HttpStatusCode statusCode,
 	                            const std::string &body);
 
 	static std::string getServerNameFromHostHeader(

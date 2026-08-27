@@ -17,13 +17,14 @@
 #include <stdexcept>
 
 #include "HttpRequestParser.hpp"
+#include "HttpStatusCode.hpp"
 
 /* ************************************************************************** */
 /*                              CONSTRUCTOR                                   */
 /* ************************************************************************** */
 HttpRequestParser::HttpRequestParser(std::size_t maxBodySize)
-	: state(PARSE_REQUEST_LINE), maxBodySize(maxBodySize), bodyBytesNeeded(0),
-	  headerCount(0)
+	: state(PARSE_REQUEST_LINE), errorStatusCode(NONE),
+	  maxBodySize(maxBodySize), bodyBytesNeeded(0), headerCount(0)
 {
 }
 
@@ -32,7 +33,7 @@ HttpRequestParser::HttpRequestParser(std::size_t maxBodySize)
 /* ************************************************************************** */
 HttpRequestParser::HttpRequestParser(const HttpRequestParser &other)
 	: state(other.state), buffer(other.buffer), request(other.request),
-	  error(other.error), maxBodySize(other.maxBodySize),
+	  errorStatusCode(other.errorStatusCode), maxBodySize(other.maxBodySize),
 	  bodyBytesNeeded(other.bodyBytesNeeded), headerCount(other.headerCount)
 {
 }
@@ -47,7 +48,7 @@ HttpRequestParser &HttpRequestParser::operator=(const HttpRequestParser &other)
 		state = other.state;
 		buffer = other.buffer;
 		request = other.request;
-		error = other.error;
+		errorStatusCode = other.errorStatusCode;
 		maxBodySize = other.maxBodySize;
 		bodyBytesNeeded = other.bodyBytesNeeded;
 		headerCount = other.headerCount;
@@ -118,7 +119,7 @@ void HttpRequestParser::reset(void)
 	state = PARSE_REQUEST_LINE;
 	buffer.clear();
 	request = HttpRequest();
-	error.clear();
+	errorStatusCode = NONE;
 	bodyBytesNeeded = 0;
 	headerCount = 0;
 }
@@ -128,9 +129,9 @@ const HttpRequest &HttpRequestParser::getRequest(void) const
 	return request;
 }
 
-const std::string &HttpRequestParser::getError(void) const
+HttpStatusCode HttpRequestParser::getErrorStatusCode(void) const
 {
-	return error;
+	return errorStatusCode;
 }
 
 bool HttpRequestParser::parseRequestLine(void)
@@ -142,7 +143,7 @@ bool HttpRequestParser::parseRequestLine(void)
 		if (buffer.size() > MAX_REQUEST_LINE)
 		{
 			state = PARSE_ERROR;
-			error = "Request line too large";
+			errorStatusCode = URI_TOO_LONG;
 		}
 		return false;
 	}
@@ -152,7 +153,7 @@ bool HttpRequestParser::parseRequestLine(void)
 	if (!(iss >> request.method >> request.path >> request.version))
 	{
 		state = PARSE_ERROR;
-		error = "Invalid request line";
+		errorStatusCode = BAD_REQUEST;
 		return false;
 	}
 	state = PARSE_HEADERS;
@@ -168,7 +169,7 @@ bool HttpRequestParser::parseHeaders(void)
 		if (buffer.size() > MAX_HEADERS_LINE)
 		{
 			state = PARSE_ERROR;
-			error = "Headers too large";
+			errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
 		}
 		return false;
 	}
@@ -182,13 +183,13 @@ bool HttpRequestParser::parseHeaders(void)
 			                          bodyBytesNeeded))
 			{
 				state = PARSE_ERROR;
-				error = "Invalid Content-Length";
+				errorStatusCode = BAD_REQUEST;
 				return false;
 			}
 			if (bodyBytesNeeded > maxBodySize)
 			{
 				state = PARSE_ERROR;
-				error = "Body too large";
+				errorStatusCode = CONTENT_TOO_LARGE;
 				return false;
 			}
 		}
@@ -199,14 +200,14 @@ bool HttpRequestParser::parseHeaders(void)
 	if (sep == std::string::npos)
 	{
 		state = PARSE_ERROR;
-		error = "Malformed header line";
+		errorStatusCode = BAD_REQUEST;
 		return false;
 	}
 	static const std::size_t MAX_HEADER_COUNT = 100;
 	if (++headerCount > MAX_HEADER_COUNT)
 	{
 		state = PARSE_ERROR;
-		error = "Too many headers";
+		errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
 		return false;
 	}
 	std::string key = trim(line.substr(0, sep));
@@ -218,7 +219,7 @@ bool HttpRequestParser::parseHeaders(void)
 	if (key == "content-length" && request.headers.count(key))
 	{
 		state = PARSE_ERROR;
-		error = "Duplicate Content-Length";
+		errorStatusCode = BAD_REQUEST;
 		return false;
 	}
 	request.headers[key] = val;

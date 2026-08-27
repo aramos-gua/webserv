@@ -6,6 +6,7 @@
 		"aramos",
 		"binhex",
 		"bugprone",
+		"checkin",
 		"cppcoreguidelines",
 		"emflynn",
 		"fastcgi",

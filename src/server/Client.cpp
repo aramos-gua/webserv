@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:39:35 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/27 07:39:34 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 13:22:17 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 
 #include "Client.hpp"
 #include "HttpConfig.hpp"
+#include "HttpStatusCodeHelpers.hpp"
 #include "ServerConfig.hpp"
 #include "StringBase.hpp"
 #include "StringHelpers.hpp"
@@ -58,12 +59,12 @@ void Client::setUp(const HttpConfig &httpConfig,
 	this->addressPortPair = addressPortPair;
 }
 
-bool Client::writeFlag(void) const
+bool Client::getWhetherOutputIsPending(void) const
 {
 	return !sendBuffer.empty();
 }
 
-bool Client::closeFlag(void) const
+bool Client::getWhetherConnectionShouldClose(void) const
 {
 	return shouldClose;
 }
@@ -88,7 +89,8 @@ void Client::onRecv(int fileDescriptor)
 	}
 	else if (result == HttpRequestParser::ERROR)
 	{
-		queuePlainTextResponse(400, "Bad Request", "Malformed request\n");
+		queuePlainTextResponse(requestParser.getErrorStatusCode(),
+		                       "Malformed request\n");
 		shouldClose = true;
 	}
 }
@@ -131,7 +133,7 @@ void Client::handleRequest(void)
 
 	if (httpConfig == NULL)
 	{
-		queuePlainTextResponse(500, "Internal Server Error",
+		queuePlainTextResponse(INTERNAL_SERVER_ERROR,
 		                       "Client has no configuration\n");
 		shouldClose = true;
 		return;
@@ -144,37 +146,37 @@ void Client::handleRequest(void)
 
 		// TODO: Replace with real request handling, driven by serverConfig
 		queuePlainTextResponse(
-			200, "OK",
-			StringBase() << "Webserv is working\n\n"
-						 << "listener:    " << addressPortPair << "\n"
-						 << "host header: "
-						 << (hostHeader.empty() ? "(none)" : hostHeader) << "\n"
-						 << "server name: "
-						 << (serverName.empty() ? "(none)" : serverName) << "\n"
-						 << "root:        "
-						 << (serverConfig.rootSettingResolves()
-		                         ? serverConfig.resolveRootSetting()
-		                         : "(not set)")
-						 << "\n");
+			OK, StringBase()
+					<< "Webserv is working\n\n"
+					<< "listener:    " << addressPortPair << "\n"
+					<< "host header: "
+					<< (hostHeader.empty() ? "(none)" : hostHeader) << "\n"
+					<< "server name: "
+					<< (serverName.empty() ? "(none)" : serverName) << "\n"
+					<< "root:        "
+					<< (serverConfig.rootSettingResolves()
+		                    ? serverConfig.resolveRootSetting()
+		                    : "(not set)")
+					<< "\n");
 	}
 	catch (const AConfig::SettingNotSetException &exception)
 	{
 		// The listener was bound from this same set of pairs, so this should be
 		// unreachable; report it rather than dropping the connection silently.
-		queuePlainTextResponse(500, "Internal Server Error",
+		queuePlainTextResponse(INTERNAL_SERVER_ERROR,
 		                       StringBase() << exception.what() << "\n");
 		shouldClose = true;
 	}
 }
 
-void Client::queuePlainTextResponse(int statusCode,
-                                    const std::string &description,
+void Client::queuePlainTextResponse(HttpStatusCode statusCode,
                                     const std::string &body)
 {
 	HttpResponse response;
 
 	response.statusCode = statusCode;
-	response.description = description;
+	response.description =
+		HttpStatusCodeHelpers::getReasonPhraseForStatusCode(statusCode);
 	response.headers["Content-Type"] = "text/plain";
 	response.body = body;
 	sendBuffer += HttpResponseBuilder::build(response);
