@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 18:24:03 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 18:31:23 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,6 +80,8 @@ private:
 
 	bool startBody(void);
 	bool appendToBodyWithinLimit(const std::string &data);
+
+	bool fail(HttpStatusCode statusCode);
 
 	static std::size_t getMinimumConfirmedLineLength(const std::string &str,
 	                                                 std::size_t terminatorPos);

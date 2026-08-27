@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 18:26:18 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 18:31:42 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -227,6 +227,13 @@ std::size_t HttpRequestParser::getUnparsedByteCount(void) const
 	return buffer.size();
 }
 
+bool HttpRequestParser::fail(HttpStatusCode statusCode)
+{
+	state = PARSE_ERROR;
+	errorStatusCode = statusCode;
+	return false;
+}
+
 bool HttpRequestParser::parseRequestLine(void)
 {
 	static const std::size_t MAX_REQUEST_LINE = 8192;
@@ -240,9 +247,7 @@ bool HttpRequestParser::parseRequestLine(void)
 		getMinimumConfirmedLineLength(buffer, pos);
 	if (minimumConfirmedLineLength > MAX_REQUEST_LINE)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = URI_TOO_LONG;
-		return false;
+		return fail(URI_TOO_LONG);
 	}
 	if (pos == std::string::npos)
 	{
@@ -260,9 +265,7 @@ bool HttpRequestParser::parseRequestLine(void)
 	std::size_t secondSpace = line.find(' ', firstSpace + 1);
 	if (firstSpace == std::string::npos || secondSpace == std::string::npos)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 	std::string methodField = line.substr(0, firstSpace);
 	std::string targetField =
@@ -271,9 +274,7 @@ bool HttpRequestParser::parseRequestLine(void)
 	if (methodField.empty() || targetField.empty() || versionField.empty() ||
 	    versionField.find(' ') != std::string::npos)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 
 	try
@@ -285,21 +286,15 @@ bool HttpRequestParser::parseRequestLine(void)
 	}
 	catch (const std::out_of_range &)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 	if (!HttpVersionHelpers::getWhetherVersionIsSupported(request.getVersion()))
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = HTTP_VERSION_NOT_SUPPORTED;
-		return false;
+		return fail(HTTP_VERSION_NOT_SUPPORTED);
 	}
 	if (!HttpMethodHelpers::getWhetherMethodIsImplemented(request.getMethod()))
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = NOT_IMPLEMENTED;
-		return false;
+		return fail(NOT_IMPLEMENTED);
 	}
 	request.setPath(targetField);
 	state = PARSE_HEADERS;
@@ -316,9 +311,7 @@ bool HttpRequestParser::parseHeaders(void)
 		getMinimumConfirmedLineLength(buffer, pos);
 	if (minimumConfirmedLineLength > MAX_HEADERS_LINE)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
-		return false;
+		return fail(REQUEST_HEADER_FIELDS_TOO_LARGE);
 	}
 	if (pos == std::string::npos)
 	{
@@ -339,25 +332,19 @@ bool HttpRequestParser::parseHeaders(void)
 		    (hostField == request.getHeaders().end() ||
 		     hostField->second.empty()))
 		{
-			state = PARSE_ERROR;
-			errorStatusCode = BAD_REQUEST;
-			return false;
+			return fail(BAD_REQUEST);
 		}
 		return startBody();
 	}
 	std::size_t sep = line.find(":");
 	if (sep == std::string::npos)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 	static const std::size_t MAX_HEADER_COUNT = 100;
 	if (++headerCount > MAX_HEADER_COUNT)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
-		return false;
+		return fail(REQUEST_HEADER_FIELDS_TOO_LARGE);
 	}
 	// RFC 9110 defines a field name as one or more "tchar"s, and whitespace is
 	// not one of them. Trimming "Host : x" into "Host" rather than rejecting it
@@ -367,9 +354,7 @@ bool HttpRequestParser::parseHeaders(void)
 	std::string key = line.substr(0, sep);
 	if (!isValidFieldName(key))
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 	for (std::size_t i = 0; i < key.size(); ++i)
 	{
@@ -378,9 +363,7 @@ bool HttpRequestParser::parseHeaders(void)
 	std::string val = trim(line.substr(sep + 1));
 	if (!request.addHeader(key, val))
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 	return true;
 }
@@ -396,9 +379,7 @@ bool HttpRequestParser::startBody(void)
 	{
 		if (contentLengthField != request.getHeaders().end())
 		{
-			state = PARSE_ERROR;
-			errorStatusCode = BAD_REQUEST;
-			return false;
+			return fail(BAD_REQUEST);
 		}
 		std::vector<std::string> codingNames =
 			splitOnCommas(transferEncodingField->second);
@@ -413,24 +394,18 @@ bool HttpRequestParser::startBody(void)
 			}
 			catch (const std::out_of_range &)
 			{
-				state = PARSE_ERROR;
-				errorStatusCode = BAD_REQUEST;
-				return false;
+				return fail(BAD_REQUEST);
 			}
 		}
 		if (encodings.size() != 1 ||
 		    !TransferEncodingHelpers::getWhetherTransferEncodingIsSupported(
 				encodings[0]))
 		{
-			state = PARSE_ERROR;
-			errorStatusCode = NOT_IMPLEMENTED;
-			return false;
+			return fail(NOT_IMPLEMENTED);
 		}
 		if (request.getVersion() != HTTP_1_1)
 		{
-			state = PARSE_ERROR;
-			errorStatusCode = BAD_REQUEST;
-			return false;
+			return fail(BAD_REQUEST);
 		}
 		state = PARSE_CHUNK_SIZE;
 		return true;
@@ -439,15 +414,11 @@ bool HttpRequestParser::startBody(void)
 	{
 		if (!isValidContentLength(contentLengthField->second, bodyBytesNeeded))
 		{
-			state = PARSE_ERROR;
-			errorStatusCode = BAD_REQUEST;
-			return false;
+			return fail(BAD_REQUEST);
 		}
 		if (bodyBytesNeeded > maxBodySize)
 		{
-			state = PARSE_ERROR;
-			errorStatusCode = CONTENT_TOO_LARGE;
-			return false;
+			return fail(CONTENT_TOO_LARGE);
 		}
 	}
 	state = PARSE_BODY;
@@ -460,9 +431,7 @@ bool HttpRequestParser::appendToBodyWithinLimit(const std::string &data)
 {
 	if (request.getBody().size() + data.size() > maxBodySize)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = CONTENT_TOO_LARGE;
-		return false;
+		return fail(CONTENT_TOO_LARGE);
 	}
 	request.appendToBody(data);
 	return true;
@@ -476,9 +445,7 @@ bool HttpRequestParser::parseChunkSize(void)
 		getMinimumConfirmedLineLength(buffer, pos);
 	if (minimumConfirmedLineLength > MAX_CHUNK_SIZE_LINE)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 	if (pos == std::string::npos)
 	{
@@ -491,28 +458,20 @@ bool HttpRequestParser::parseChunkSize(void)
 	// could slow down the server
 	if (line.find(';') != std::string::npos)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 	if (!isValidChunkSize(line, chunkBytesNeeded))
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 	if (chunkBytesNeeded > maxBodySize - request.getBody().size())
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = CONTENT_TOO_LARGE;
-		return false;
+		return fail(CONTENT_TOO_LARGE);
 	}
 	if (chunkBytesNeeded >
 	    std::numeric_limits<std::size_t>::max() - TERMINATOR.length())
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = CONTENT_TOO_LARGE;
-		return false;
+		return fail(CONTENT_TOO_LARGE);
 	}
 	state = chunkBytesNeeded == 0 ? PARSE_TRAILERS : PARSE_CHUNK_DATA;
 	return true;
@@ -528,9 +487,7 @@ bool HttpRequestParser::parseChunkData(void)
 	}
 	if (buffer.compare(chunkBytesNeeded, TERMINATOR.length(), TERMINATOR) != 0)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 	if (!appendToBodyWithinLimit(buffer.substr(0, chunkBytesNeeded)))
 	{
@@ -550,9 +507,7 @@ bool HttpRequestParser::parseTrailers(void)
 		getMinimumConfirmedLineLength(buffer, pos);
 	if (minimumConfirmedLineLength > MAX_TRAILER_LINE)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
-		return false;
+		return fail(REQUEST_HEADER_FIELDS_TOO_LARGE);
 	}
 	if (pos == std::string::npos)
 	{
@@ -572,16 +527,12 @@ bool HttpRequestParser::parseTrailers(void)
 	std::size_t sep = line.find(":");
 	if (sep == std::string::npos || !isValidFieldName(line.substr(0, sep)))
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = BAD_REQUEST;
-		return false;
+		return fail(BAD_REQUEST);
 	}
 	static const std::size_t MAX_HEADER_COUNT = 100;
 	if (++headerCount > MAX_HEADER_COUNT)
 	{
-		state = PARSE_ERROR;
-		errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
-		return false;
+		return fail(REQUEST_HEADER_FIELDS_TOO_LARGE);
 	}
 	return true;
 }
