@@ -43,8 +43,6 @@ public:
 	HttpStatusCode getErrorStatusCode(void) const;
 	void reset(void);
 
-	static HttpRequest parse(const std::string &rawRequest);
-
 private:
 	enum State
 	{
