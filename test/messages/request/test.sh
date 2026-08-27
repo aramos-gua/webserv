@@ -907,6 +907,13 @@ RESULT: INVALID
 STATUS: 413 Content Too Large"
 	run_request_test
 
+	export TEST_NAME="More headers and trailers together than the parser accepts"
+	export REQUEST_FILE="too-many-headers-and-trailers.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 431 Request Header Fields Too Large"
+	run_result_test
+
 	export TEST_NAME="More headers than the parser accepts"
 	export REQUEST_FILE="too-many-headers.http"
 	export EXPECTED="\

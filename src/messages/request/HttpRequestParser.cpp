@@ -318,7 +318,6 @@ bool HttpRequestParser::parseHeaders(void)
 	{
 		return fail(BAD_REQUEST);
 	}
-	static const std::size_t MAX_HEADER_COUNT = 100;
 	if (++headerCount > MAX_HEADER_COUNT)
 	{
 		return fail(REQUEST_HEADER_FIELDS_TOO_LARGE);
@@ -485,7 +484,6 @@ bool HttpRequestParser::parseTrailers(void)
 	{
 		return fail(BAD_REQUEST);
 	}
-	static const std::size_t MAX_HEADER_COUNT = 100;
 	if (++headerCount > MAX_HEADER_COUNT)
 	{
 		return fail(REQUEST_HEADER_FIELDS_TOO_LARGE);
