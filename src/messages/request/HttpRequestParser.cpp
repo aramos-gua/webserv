@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 17:57:43 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 18:26:18 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,12 @@
 #include "HttpVersionHelpers.hpp"
 #include "StringHelpers.hpp"
 #include "TransferEncodingHelpers.hpp"
+
+// NOLINTBEGIN(bugprone-throwing-static-initialization)
+
+const std::string HttpRequestParser::TERMINATOR = "\r\n";
+
+// NOLINTEND(bugprone-throwing-static-initialization)
 
 HttpRequestParser::HttpRequestParser(std::size_t maxBodySize)
 	: state(PARSE_REQUEST_LINE), errorStatusCode(NO_STATUS_CODE),
@@ -224,7 +230,7 @@ std::size_t HttpRequestParser::getUnparsedByteCount(void) const
 bool HttpRequestParser::parseRequestLine(void)
 {
 	static const std::size_t MAX_REQUEST_LINE = 8192;
-	std::size_t pos = buffer.find("\r\n");
+	std::size_t pos = buffer.find(TERMINATOR);
 	// The line is exactly pos bytes once its terminator has arrived, and at
 	// least buffer.size() bytes while it hasn't. An oversized line can never
 	// become valid either way, so the limit is checked before the terminator
@@ -303,7 +309,7 @@ bool HttpRequestParser::parseRequestLine(void)
 bool HttpRequestParser::parseHeaders(void)
 {
 	static const std::size_t MAX_HEADERS_LINE = 8192;
-	std::size_t pos = buffer.find("\r\n");
+	std::size_t pos = buffer.find(TERMINATOR);
 	// Measured the same way as the request line above: whether or not the
 	// terminator has arrived, a line already over the limit is rejected.
 	std::size_t minimumConfirmedLineLength =
@@ -465,7 +471,7 @@ bool HttpRequestParser::appendToBodyWithinLimit(const std::string &data)
 bool HttpRequestParser::parseChunkSize(void)
 {
 	static const std::size_t MAX_CHUNK_SIZE_LINE = 8192;
-	std::size_t pos = buffer.find("\r\n");
+	std::size_t pos = buffer.find(TERMINATOR);
 	std::size_t minimumConfirmedLineLength =
 		getMinimumConfirmedLineLength(buffer, pos);
 	if (minimumConfirmedLineLength > MAX_CHUNK_SIZE_LINE)
@@ -495,7 +501,19 @@ bool HttpRequestParser::parseChunkSize(void)
 		errorStatusCode = BAD_REQUEST;
 		return false;
 	}
-	// A zero size marks the last chunk, after which only trailers remain.
+	if (chunkBytesNeeded > maxBodySize - request.getBody().size())
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = CONTENT_TOO_LARGE;
+		return false;
+	}
+	if (chunkBytesNeeded >
+	    std::numeric_limits<std::size_t>::max() - TERMINATOR.length())
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = CONTENT_TOO_LARGE;
+		return false;
+	}
 	state = chunkBytesNeeded == 0 ? PARSE_TRAILERS : PARSE_CHUNK_DATA;
 	return true;
 }
@@ -508,7 +526,7 @@ bool HttpRequestParser::parseChunkData(void)
 	{
 		return false;
 	}
-	if (buffer.compare(chunkBytesNeeded, 2, "\r\n") != 0)
+	if (buffer.compare(chunkBytesNeeded, TERMINATOR.length(), TERMINATOR) != 0)
 	{
 		state = PARSE_ERROR;
 		errorStatusCode = BAD_REQUEST;
@@ -527,7 +545,7 @@ bool HttpRequestParser::parseChunkData(void)
 bool HttpRequestParser::parseTrailers(void)
 {
 	static const std::size_t MAX_TRAILER_LINE = 8192;
-	std::size_t pos = buffer.find("\r\n");
+	std::size_t pos = buffer.find(TERMINATOR);
 	std::size_t minimumConfirmedLineLength =
 		getMinimumConfirmedLineLength(buffer, pos);
 	if (minimumConfirmedLineLength > MAX_TRAILER_LINE)

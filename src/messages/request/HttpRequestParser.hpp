@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 17:45:36 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 18:24:03 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,6 +58,8 @@ private:
 		PARSE_DONE,
 		PARSE_ERROR
 	};
+
+	static const std::string TERMINATOR;
 
 	State state;
 	std::string buffer;

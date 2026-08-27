@@ -811,6 +811,28 @@ RESULT: INVALID
 STATUS: 413 Content Too Large"
 	run_request_test
 
+	export TEST_NAME="Chunk announcing more than the configured limit"
+	export REQUEST_FILE="chunked-size-beyond-body-limit.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 413 Content Too Large"
+	run_request_test
+
+	export TEST_NAME="Chunk size near the top of the integer range"
+	export REQUEST_FILE="chunked-size-at-integer-limit.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 413 Content Too Large"
+	run_request_test
+
+	export TEST_NAME="Chunk size near the top of the integer range, huge limit"
+	export REQUEST_FILE="chunked-size-at-integer-limit.http"
+	export OPTIONS="--max-body-size 18446744073709551615"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 413 Content Too Large"
+	run_request_test
+
 	export TEST_NAME="Body larger than the configured limit"
 	export REQUEST_FILE="body-too-large.http"
 	export OPTIONS="--max-body-size 10"
