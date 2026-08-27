@@ -6,14 +6,13 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 17:47:48 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 17:57:43 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <cctype>
 #include <cstdlib>
 #include <limits>
-#include <set>
 #include <sstream>
 #include <stdexcept>
 
@@ -24,27 +23,6 @@
 #include "StringHelpers.hpp"
 #include "TransferEncodingHelpers.hpp"
 
-// NOLINTBEGIN(bugprone-throwing-static-initialization)
-
-static const std::string SINGLE_OCCURRENCE_FIELD_NAME_ARRAY[] = {
-	"authorization", "content-length", "content-type", "cookie",  "date",
-	"from",          "host",           "origin",       "referer", "user-agent",
-};
-
-// Field names that may appear only once. Repeating any of these is either a
-// framing question with no safe answer (host, content-length) or produces a
-// value that comma-joining would corrupt rather than combine — user-agent
-// separates its product tokens with spaces, and cookie with semicolons.
-static const std::set<std::string> SINGLE_OCCURRENCE_FIELD_NAMES(
-	SINGLE_OCCURRENCE_FIELD_NAME_ARRAY,
-	SINGLE_OCCURRENCE_FIELD_NAME_ARRAY +
-		(sizeof(SINGLE_OCCURRENCE_FIELD_NAME_ARRAY) / sizeof(std::string)));
-
-// NOLINTEND(bugprone-throwing-static-initialization)
-
-/* ************************************************************************** */
-/*                              CONSTRUCTOR                                   */
-/* ************************************************************************** */
 HttpRequestParser::HttpRequestParser(std::size_t maxBodySize)
 	: state(PARSE_REQUEST_LINE), errorStatusCode(NO_STATUS_CODE),
 	  maxBodySize(maxBodySize), bodyBytesNeeded(0), headerCount(0),
@@ -52,9 +30,6 @@ HttpRequestParser::HttpRequestParser(std::size_t maxBodySize)
 {
 }
 
-/* ************************************************************************** */
-/*                              COPY CONSTRUCTOR                              */
-/* ************************************************************************** */
 HttpRequestParser::HttpRequestParser(const HttpRequestParser &other)
 	: state(other.state), buffer(other.buffer), request(other.request),
 	  errorStatusCode(other.errorStatusCode), maxBodySize(other.maxBodySize),
@@ -63,35 +38,27 @@ HttpRequestParser::HttpRequestParser(const HttpRequestParser &other)
 {
 }
 
-/* ************************************************************************** */
-/*                          COPY ASSIGNMENT OPERATOR                          */
-/* ************************************************************************** */
 HttpRequestParser &HttpRequestParser::operator=(const HttpRequestParser &other)
 {
-	if (this != &other)
+	if (this == &other)
 	{
-		state = other.state;
-		buffer = other.buffer;
-		request = other.request;
-		errorStatusCode = other.errorStatusCode;
-		maxBodySize = other.maxBodySize;
-		bodyBytesNeeded = other.bodyBytesNeeded;
-		headerCount = other.headerCount;
-		chunkBytesNeeded = other.chunkBytesNeeded;
+		return *this;
 	}
+	state = other.state;
+	buffer = other.buffer;
+	request = other.request;
+	errorStatusCode = other.errorStatusCode;
+	maxBodySize = other.maxBodySize;
+	bodyBytesNeeded = other.bodyBytesNeeded;
+	headerCount = other.headerCount;
+	chunkBytesNeeded = other.chunkBytesNeeded;
 	return *this;
 }
 
-/* ************************************************************************** */
-/*                               DESTRUCTOR                                   */
-/* ************************************************************************** */
 HttpRequestParser::~HttpRequestParser(void)
 {
 }
 
-/* ************************************************************************** */
-/*                               MEMBER FUNCTIONS                             */
-/* ************************************************************************** */
 std::size_t HttpRequestParser::getMinimumConfirmedLineLength(
 	const std::string &str, std::size_t terminatorPos)
 {
@@ -99,11 +66,8 @@ std::size_t HttpRequestParser::getMinimumConfirmedLineLength(
 	{
 		return terminatorPos;
 	}
-	// Without a terminator the line is at least the whole buffer, except that
-	// a trailing CR may be the first half of the CRLF that ends it, and so
-	// isn't yet known to be content. Without that allowance a line of exactly
-	// the maximum length would be rejected whenever its CR and LF happened to
-	// arrive in separate reads.
+	// NOTE: a trailing CR may be the first half of a terminating CRLF
+	// rather than part of the body. This check accounts for that
 	if (!str.empty() && str[str.size() - 1] == '\r')
 	{
 		return str.size() - 1;
@@ -308,9 +272,10 @@ bool HttpRequestParser::parseRequestLine(void)
 
 	try
 	{
-		request.method = HttpMethodHelpers::getHttpMethodForString(methodField);
-		request.version =
-			HttpVersionHelpers::getHttpVersionForString(versionField);
+		request.setMethod(
+			HttpMethodHelpers::getHttpMethodForString(methodField));
+		request.setVersion(
+			HttpVersionHelpers::getHttpVersionForString(versionField));
 	}
 	catch (const std::out_of_range &)
 	{
@@ -318,19 +283,19 @@ bool HttpRequestParser::parseRequestLine(void)
 		errorStatusCode = BAD_REQUEST;
 		return false;
 	}
-	if (!HttpVersionHelpers::getWhetherVersionIsSupported(request.version))
+	if (!HttpVersionHelpers::getWhetherVersionIsSupported(request.getVersion()))
 	{
 		state = PARSE_ERROR;
 		errorStatusCode = HTTP_VERSION_NOT_SUPPORTED;
 		return false;
 	}
-	if (!HttpMethodHelpers::getWhetherMethodIsImplemented(request.method))
+	if (!HttpMethodHelpers::getWhetherMethodIsImplemented(request.getMethod()))
 	{
 		state = PARSE_ERROR;
 		errorStatusCode = NOT_IMPLEMENTED;
 		return false;
 	}
-	request.path = targetField;
+	request.setPath(targetField);
 	state = PARSE_HEADERS;
 	return true;
 }
@@ -363,9 +328,10 @@ bool HttpRequestParser::parseHeaders(void)
 		// virtual hosting and carries neither requirement, so the check is
 		// deliberately version-specific.
 		std::map<std::string, std::string>::const_iterator hostField =
-			request.headers.find("host");
-		if (request.version == HTTP_1_1 &&
-		    (hostField == request.headers.end() || hostField->second.empty()))
+			request.getHeaders().find("host");
+		if (request.getVersion() == HTTP_1_1 &&
+		    (hostField == request.getHeaders().end() ||
+		     hostField->second.empty()))
 		{
 			state = PARSE_ERROR;
 			errorStatusCode = BAD_REQUEST;
@@ -404,36 +370,25 @@ bool HttpRequestParser::parseHeaders(void)
 		key[i] = static_cast<char>(tolower(static_cast<unsigned char>(key[i])));
 	}
 	std::string val = trim(line.substr(sep + 1));
-	std::map<std::string, std::string>::iterator existingField =
-		request.headers.find(key);
-	if (existingField == request.headers.end())
-	{
-		request.headers[key] = val;
-		return true;
-	}
-	if (SINGLE_OCCURRENCE_FIELD_NAMES.find(key) !=
-	    SINGLE_OCCURRENCE_FIELD_NAMES.end())
+	if (!request.addHeader(key, val))
 	{
 		state = PARSE_ERROR;
 		errorStatusCode = BAD_REQUEST;
 		return false;
 	}
-	// RFC 9110: repeating a list-valued field means the same as sending one
-	// field line whose values are joined, in order, by commas.
-	existingField->second += ", " + val;
 	return true;
 }
 
 bool HttpRequestParser::startBody(void)
 {
 	std::map<std::string, std::string>::const_iterator transferEncodingField =
-		request.headers.find("transfer-encoding");
+		request.getHeaders().find("transfer-encoding");
 	std::map<std::string, std::string>::const_iterator contentLengthField =
-		request.headers.find("content-length");
+		request.getHeaders().find("content-length");
 
-	if (transferEncodingField != request.headers.end())
+	if (transferEncodingField != request.getHeaders().end())
 	{
-		if (contentLengthField != request.headers.end())
+		if (contentLengthField != request.getHeaders().end())
 		{
 			state = PARSE_ERROR;
 			errorStatusCode = BAD_REQUEST;
@@ -465,7 +420,7 @@ bool HttpRequestParser::startBody(void)
 			errorStatusCode = NOT_IMPLEMENTED;
 			return false;
 		}
-		if (request.version != HTTP_1_1)
+		if (request.getVersion() != HTTP_1_1)
 		{
 			state = PARSE_ERROR;
 			errorStatusCode = BAD_REQUEST;
@@ -474,7 +429,7 @@ bool HttpRequestParser::startBody(void)
 		state = PARSE_CHUNK_SIZE;
 		return true;
 	}
-	if (contentLengthField != request.headers.end())
+	if (contentLengthField != request.getHeaders().end())
 	{
 		if (!isValidContentLength(contentLengthField->second, bodyBytesNeeded))
 		{
@@ -497,13 +452,13 @@ bool HttpRequestParser::startBody(void)
 // each chunk lands instead.
 bool HttpRequestParser::appendToBodyWithinLimit(const std::string &data)
 {
-	if (request.body.size() + data.size() > maxBodySize)
+	if (request.getBody().size() + data.size() > maxBodySize)
 	{
 		state = PARSE_ERROR;
 		errorStatusCode = CONTENT_TOO_LARGE;
 		return false;
 	}
-	request.body += data;
+	request.appendToBody(data);
 	return true;
 }
 
@@ -589,7 +544,6 @@ bool HttpRequestParser::parseTrailers(void)
 	buffer.erase(0, pos + 2);
 	if (line.empty())
 	{
-		request.contentLength = request.body.size();
 		state = PARSE_DONE;
 		return true;
 	}
@@ -625,8 +579,7 @@ bool HttpRequestParser::parseBody(void)
 	{
 		return false;
 	}
-	request.body = buffer.substr(0, bodyBytesNeeded);
-	request.contentLength = bodyBytesNeeded;
+	request.appendToBody(buffer.substr(0, bodyBytesNeeded));
 	buffer.erase(0, bodyBytesNeeded);
 	state = PARSE_DONE;
 	return true;

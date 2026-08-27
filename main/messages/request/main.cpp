@@ -63,26 +63,27 @@ static std::size_t parseSize(const std::string &option,
 static void printRequest(const HttpRequest &request)
 {
 	std::cout << "METHOD: "
-			  << HttpMethodHelpers::getStringForHttpMethod(request.method)
+			  << HttpMethodHelpers::getStringForHttpMethod(request.getMethod())
 			  << std::endl;
-	std::cout << "PATH: " << request.path << std::endl;
+	std::cout << "PATH: " << request.getPath() << std::endl;
 	std::cout << "VERSION: "
-			  << HttpVersionHelpers::getStringForHttpVersion(request.version)
+			  << HttpVersionHelpers::getStringForHttpVersion(
+					 request.getVersion())
 			  << std::endl;
 	std::cout << "HEADERS:" << std::endl;
 	for (std::map<std::string, std::string>::const_iterator headerIterator =
-	         request.headers.begin();
-	     headerIterator != request.headers.end(); ++headerIterator)
+	         request.getHeaders().begin();
+	     headerIterator != request.getHeaders().end(); ++headerIterator)
 	{
 		// Values are quoted so that empty ones, and any leading or trailing
 		// whitespace the parser was meant to strip, are visible in the dump.
 		std::cout << "  " << headerIterator->first << ": \""
 				  << headerIterator->second << "\"" << std::endl;
 	}
-	std::cout << "BODY: " << request.body.size() << " bytes" << std::endl;
-	if (!request.body.empty())
+	std::cout << "BODY: " << request.getBody().size() << " bytes" << std::endl;
+	if (!request.getBody().empty())
 	{
-		std::cout << request.body << std::endl;
+		std::cout << request.getBody() << std::endl;
 	}
 }
 

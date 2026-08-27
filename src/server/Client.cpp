@@ -124,8 +124,8 @@ void Client::handleRequest(void)
 	std::string hostHeader;
 
 	std::map<std::string, std::string>::const_iterator hostIterator =
-		request.headers.find("host");
-	if (hostIterator != request.headers.end())
+		request.getHeaders().find("host");
+	if (hostIterator != request.getHeaders().end())
 	{
 		hostHeader = hostIterator->second;
 	}
