@@ -68,6 +68,7 @@ private:
 
 	static std::size_t getMinimumConfirmedLineLength(const std::string &str,
 	                                                 std::size_t terminatorPos);
+	static bool isValidFieldName(const std::string &fieldName);
 	static std::string trim(const std::string &str);
 	static bool isValidContentLength(const std::string &str, std::size_t &out);
 };

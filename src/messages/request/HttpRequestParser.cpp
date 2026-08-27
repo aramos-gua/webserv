@@ -85,6 +85,26 @@ std::size_t HttpRequestParser::getMinimumConfirmedLineLength(
 	return str.size();
 }
 
+bool HttpRequestParser::isValidFieldName(const std::string &fieldName)
+{
+	static const std::string TOKEN_SYMBOLS = "!#$%&'*+-.^_`|~";
+
+	if (fieldName.empty())
+	{
+		return false;
+	}
+	for (std::size_t i = 0; i < fieldName.size(); ++i)
+	{
+		unsigned char character = static_cast<unsigned char>(fieldName[i]);
+		if (!isalnum(character) && TOKEN_SYMBOLS.find(static_cast<char>(
+									   character)) == std::string::npos)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 std::string HttpRequestParser::trim(const std::string &str)
 {
 	std::size_t start;
@@ -242,7 +262,18 @@ bool HttpRequestParser::parseHeaders(void)
 		errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
 		return false;
 	}
-	std::string key = trim(line.substr(0, sep));
+	// RFC 9110 defines a field name as one or more "tchar"s, and whitespace is
+	// not one of them. Trimming "Host : x" into "Host" rather than rejecting it
+	// is how a recipient ends up disagreeing with the next hop about where a
+	// header begins, which is the basis of request smuggling — so the name is
+	// validated exactly as it arrived.
+	std::string key = line.substr(0, sep);
+	if (!isValidFieldName(key))
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = BAD_REQUEST;
+		return false;
+	}
 	for (std::size_t i = 0; i < key.size(); ++i)
 	{
 		key[i] = static_cast<char>(tolower(static_cast<unsigned char>(key[i])));

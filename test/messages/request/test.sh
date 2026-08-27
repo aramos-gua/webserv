@@ -165,6 +165,22 @@ HEADERS:
 BODY: 0 bytes"
 	run_request_test
 
+	# Every unusual character that RFC 9110 does allow in a field name, to
+	# prove the token check has not over-rejected. The backtick and dollar are
+	# escaped for the shell, not because the parser cares.
+	export TEST_NAME="Field name using every permitted token symbol"
+	export REQUEST_FILE="header-name-all-token-symbols.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: GET
+PATH: /
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+  x-odd!#\$%&'*+-.^_\`|~9: \"fine\"
+BODY: 0 bytes"
+	run_request_test
+
 	# A CRLF inside the body must be taken as body content, not as the end of
 	# anything, so the expected body is spelled out with a real carriage return.
 	export TEST_NAME="Body containing a CRLF is not truncated"
@@ -229,6 +245,41 @@ STATUS: 400 Bad Request"
 
 	export TEST_NAME="Header line with no colon"
 	export REQUEST_FILE="malformed-header-line.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Whitespace between field name and colon"
+	export REQUEST_FILE="header-name-space-before-colon.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Space inside a field name"
+	export REQUEST_FILE="header-name-internal-space.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Empty field name"
+	export REQUEST_FILE="header-name-empty.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Field name containing a non-token character"
+	export REQUEST_FILE="header-name-non-token-character.http"
+	export EXPECTED="\
+RESULT: ERROR
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Obsolete line folding is rejected, not tidied up"
+	export REQUEST_FILE="header-obsolete-line-folding.http"
 	export EXPECTED="\
 RESULT: ERROR
 STATUS: 400 Bad Request"
