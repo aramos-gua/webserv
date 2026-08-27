@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-export GREEN="\033[32m"
-export RED="\033[31m"
-export DEFAULT="\033[0m"
+source ../../../test/test-helpers.sh
 
 # Check that parsing an invalid config file produces the expected error
 run_error_test() {

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-export GREEN="\033[32m"
-export RED="\033[31m"
-export DEFAULT="\033[0m"
+source ../../../test/test-helpers.sh
 
 run_error_test() {
 	if [ "$CONFIG_FILE" ]; then

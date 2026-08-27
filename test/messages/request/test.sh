@@ -1,28 +1,26 @@
 #!/usr/bin/env bash
 
-export GREEN="\033[32m"
-export RED="\033[31m"
-export DEFAULT="\033[0m"
+source ../../../test/test-helpers.sh
 
 export REQUESTS_DIR="../../../test/messages/request/request-files"
-export PARSER="../../../bin/messages-request"
+export BINARY="../../../bin/messages-request"
 
 # Check that feeding a request file to the parser produces the expected dump,
 # both when the whole request arrives in one read and when it arrives a byte at
 # a time. How a request is split across reads must never change the outcome.
 run_request_test() {
 	REQUEST_FILE="$REQUESTS_DIR/$REQUEST_FILE"
-	export WHOLE="$($PARSER $OPTIONS $REQUEST_FILE 2>&1)"
-	export CHUNKED="$($PARSER --chunk 1 $OPTIONS $REQUEST_FILE 2>&1)"
+	export WHOLE="$($BINARY $OPTIONS $REQUEST_FILE 2>&1)"
+	export CHUNKED="$($BINARY --chunk 1 $OPTIONS $REQUEST_FILE 2>&1)"
 	if ! cmp -s <(echo "$EXPECTED") <(echo "$WHOLE"); then
-		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+		report_fail \
 			&& diff <(echo "$EXPECTED") <(echo "$WHOLE")
 	elif ! cmp -s <(echo "$WHOLE") <(echo "$CHUNKED"); then
-		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+		report_fail \
 			&& echo "Byte-at-a-time delivery gave a different result:" \
 			&& diff <(echo "$WHOLE") <(echo "$CHUNKED")
 	else
-		echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME"
+		report_pass
 	fi
 	export OPTIONS=""
 }
@@ -31,30 +29,20 @@ run_request_test() {
 # full dump would be impractically large to write out
 run_result_test() {
 	REQUEST_FILE="$REQUESTS_DIR/$REQUEST_FILE"
-	export WHOLE="$($PARSER $OPTIONS $REQUEST_FILE 2>&1 \
+	export WHOLE="$($BINARY $OPTIONS $REQUEST_FILE 2>&1 \
 		| grep -E '^(RESULT|STATUS):')"
-	export CHUNKED="$($PARSER --chunk 1 $OPTIONS $REQUEST_FILE 2>&1 \
+	export CHUNKED="$($BINARY --chunk 1 $OPTIONS $REQUEST_FILE 2>&1 \
 		| grep -E '^(RESULT|STATUS):')"
 	if ! cmp -s <(echo "$EXPECTED") <(echo "$WHOLE"); then
-		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+		report_fail \
 			&& diff <(echo "$EXPECTED") <(echo "$WHOLE")
 	elif ! cmp -s <(echo "$WHOLE") <(echo "$CHUNKED"); then
-		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+		report_fail \
 			&& echo "Byte-at-a-time delivery gave a different result:" \
 			&& diff <(echo "$WHOLE") <(echo "$CHUNKED")
 	else
-		echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME"
+		report_pass
 	fi
-	export OPTIONS=""
-}
-
-# Check that a bad invocation produces the expected usage or error message
-run_usage_test() {
-	export ACTUAL="$($PARSER $OPTIONS 2>&1)"
-	cmp -s <(echo "$EXPECTED") <(echo "$ACTUAL") \
-		&& (echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME") \
-		|| (echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
-			&& echo "$ACTUAL")
 	export OPTIONS=""
 }
 
@@ -67,13 +55,13 @@ if [ "$ANSWER" != "n" ]; then
 	export TEST_NAME="Missing request file"
 	export OPTIONS=""
 	export EXPECTED="\
-Usage: $PARSER [--chunk <size>] [--max-body-size <size>] <path to request file>"
+Usage: $BINARY [--chunk <size>] [--max-body-size <size>] <path to request file>"
 	run_usage_test
 
 	export TEST_NAME="Unknown option"
 	export OPTIONS="--nonsense $REQUESTS_DIR/simple-get.http"
 	export EXPECTED="\
-Usage: $PARSER [--chunk <size>] [--max-body-size <size>] <path to request file>"
+Usage: $BINARY [--chunk <size>] [--max-body-size <size>] <path to request file>"
 	run_usage_test
 
 	export TEST_NAME="Non-numeric chunk size"

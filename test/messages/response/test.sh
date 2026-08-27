@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 
-export GREEN="\033[32m"
-export RED="\033[31m"
-export DEFAULT="\033[0m"
+source ../../../test/test-helpers.sh
 
 export RESPONSES_DIR="../../../test/messages/response/response-files"
-export BUILDER="../../../bin/messages-response"
+export BINARY="../../../bin/messages-response"
 
 # A fixture read with --raw must supply its own Date header. The generated one
 # carries the current instant, so an expectation holding it goes stale a second
@@ -17,12 +15,12 @@ export BUILDER="../../../bin/messages-response"
 # CRLF-terminated throughout and separated from the body by one empty line.
 run_response_test() {
 	RESPONSE_FILE="$RESPONSES_DIR/$RESPONSE_FILE"
-	export ACTUAL="$($BUILDER $OPTIONS $RESPONSE_FILE 2>&1)"
+	export ACTUAL="$($BINARY $OPTIONS $RESPONSE_FILE 2>&1)"
 	if ! cmp -s <(echo "$EXPECTED") <(echo "$ACTUAL"); then
-		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+		report_fail \
 			&& diff <(echo "$EXPECTED") <(echo "$ACTUAL")
 	else
-		echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME"
+		report_pass
 	fi
 	export OPTIONS=""
 }
@@ -33,17 +31,17 @@ run_response_test() {
 # invariant --chunk 1 enforces on the request side.
 run_body_test() {
 	RESPONSE_FILE="$RESPONSES_DIR/$RESPONSE_FILE"
-	export WHOLE="$($BUILDER $OPTIONS $RESPONSE_FILE 2>&1)"
-	export FRAGMENTED="$($BUILDER --read-size 1 $OPTIONS $RESPONSE_FILE 2>&1)"
+	export WHOLE="$($BINARY $OPTIONS $RESPONSE_FILE 2>&1)"
+	export FRAGMENTED="$($BINARY --read-size 1 $OPTIONS $RESPONSE_FILE 2>&1)"
 	if ! cmp -s <(echo "$EXPECTED") <(echo "$WHOLE"); then
-		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+		report_fail \
 			&& diff <(echo "$EXPECTED") <(echo "$WHOLE")
 	elif ! cmp -s <(echo "$WHOLE") <(echo "$FRAGMENTED"); then
-		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+		report_fail \
 			&& echo "Reading the body one byte at a time gave a different result:" \
 			&& diff <(echo "$WHOLE") <(echo "$FRAGMENTED")
 	else
-		echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME"
+		report_pass
 	fi
 	export OPTIONS=""
 }
@@ -53,29 +51,19 @@ run_body_test() {
 run_body_summary_test() {
 	RESPONSE_FILE="$RESPONSES_DIR/$RESPONSE_FILE"
 	export SUMMARISE='/^BODY: /{print; skip=1; next} /^FRAMING: /{skip=0} !skip'
-	export WHOLE="$($BUILDER $OPTIONS $RESPONSE_FILE 2>&1 | awk "$SUMMARISE")"
-	export FRAGMENTED="$($BUILDER --read-size 1 $OPTIONS $RESPONSE_FILE 2>&1 \
+	export WHOLE="$($BINARY $OPTIONS $RESPONSE_FILE 2>&1 | awk "$SUMMARISE")"
+	export FRAGMENTED="$($BINARY --read-size 1 $OPTIONS $RESPONSE_FILE 2>&1 \
 		| awk "$SUMMARISE")"
 	if ! cmp -s <(echo "$EXPECTED") <(echo "$WHOLE"); then
-		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+		report_fail \
 			&& diff <(echo "$EXPECTED") <(echo "$WHOLE")
 	elif ! cmp -s <(echo "$WHOLE") <(echo "$FRAGMENTED"); then
-		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+		report_fail \
 			&& echo "Reading the body one byte at a time gave a different result:" \
 			&& diff <(echo "$WHOLE") <(echo "$FRAGMENTED")
 	else
-		echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME"
+		report_pass
 	fi
-	export OPTIONS=""
-}
-
-# Check that a bad invocation produces the expected usage or error message
-run_usage_test() {
-	export ACTUAL="$($BUILDER $OPTIONS 2>&1)"
-	cmp -s <(echo "$EXPECTED") <(echo "$ACTUAL") \
-		&& (echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME") \
-		|| (echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
-			&& echo "$ACTUAL")
 	export OPTIONS=""
 }
 
@@ -88,13 +76,13 @@ if [ "$ANSWER" != "n" ]; then
 	export TEST_NAME="Missing response file"
 	export OPTIONS=""
 	export EXPECTED="\
-Usage: $BUILDER [--raw] [--read-size <size>] <path to response file>"
+Usage: $BINARY [--raw] [--read-size <size>] <path to response file>"
 	run_usage_test
 
 	export TEST_NAME="Unknown option"
 	export OPTIONS="--nonsense $RESPONSES_DIR/simple-ok.response"
 	export EXPECTED="\
-Usage: $BUILDER [--raw] [--read-size <size>] <path to response file>"
+Usage: $BINARY [--raw] [--read-size <size>] <path to response file>"
 	run_usage_test
 
 	export TEST_NAME="Nonexistent response file"

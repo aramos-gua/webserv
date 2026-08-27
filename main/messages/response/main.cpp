@@ -26,6 +26,7 @@
 #include "HttpResponseBuilder.hpp"
 #include "HttpVersionHelpers.hpp"
 #include "ResponseBodyReader.hpp"
+#include "StringHelpers.hpp"
 
 // The builder produces bytes rather than consuming them, so a response file
 // describes the response to build instead of holding a message to parse:
@@ -375,11 +376,11 @@ int main(int argc, char **argv)
 			}
 			else if (argument == "--read-size" && argumentIndex + 1 < argc)
 			{
-				std::istringstream valueStream(argv[++argumentIndex]);
-				if (!(valueStream >> readSize) || !valueStream.eof() ||
-				    readSize == 0)
+				std::string value = argv[++argumentIndex];
+				if (!StringHelpers::parseSize(value, readSize) || readSize == 0)
 				{
-					throw std::runtime_error("Invalid value for --read-size");
+					throw std::runtime_error("Invalid value \"" + value +
+					                         "\" for --read-size");
 				}
 			}
 			else if (!argument.empty() && argument[0] != '-' &&

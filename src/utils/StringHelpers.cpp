@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include <cctype>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -93,4 +94,31 @@ std::string StringHelpers::removeLineBreaks(const std::string &str)
 		}
 	}
 	return strWithoutLineBreaks;
+}
+
+bool StringHelpers::parseSize(const std::string &str, std::size_t &out)
+{
+	static const std::size_t DECIMAL_BASE = 10;
+
+	if (str.empty())
+	{
+		return false;
+	}
+	std::size_t value = 0;
+	for (std::size_t i = 0; i < str.size(); ++i)
+	{
+		if (!std::isdigit(static_cast<unsigned char>(str[i])))
+		{
+			return false;
+		}
+		std::size_t digit = str[i] - '0';
+		if (value >
+		    (std::numeric_limits<std::size_t>::max() - digit) / DECIMAL_BASE)
+		{
+			return false;
+		}
+		value = (value * DECIMAL_BASE) + digit;
+	}
+	out = value;
+	return true;
 }

@@ -94,34 +94,6 @@ bool HttpRequestParser::isValidOriginFormTarget(const std::string &target)
 	return true;
 }
 
-bool HttpRequestParser::isValidContentLength(const std::string &str,
-                                             std::size_t &out)
-{
-	static const std::size_t DECIMAL_BASE = 10;
-
-	if (str.empty())
-	{
-		return false;
-	}
-	std::size_t value = 0;
-	for (std::size_t i = 0; i < str.size(); ++i)
-	{
-		if (!isdigit(static_cast<unsigned char>(str[i])))
-		{
-			return false;
-		}
-		std::size_t digit = str[i] - '0';
-		if (value >
-		    (std::numeric_limits<std::size_t>::max() - digit) / DECIMAL_BASE)
-		{
-			return false;
-		}
-		value = (value * DECIMAL_BASE) + digit;
-	}
-	out = value;
-	return true;
-}
-
 bool HttpRequestParser::isValidChunkSize(const std::string &str,
                                          std::size_t &out)
 {
@@ -361,7 +333,8 @@ bool HttpRequestParser::startBody(void)
 	}
 	if (contentLengthField != request.getHeaders().end())
 	{
-		if (!isValidContentLength(contentLengthField->second, bodyBytesNeeded))
+		if (!StringHelpers::parseSize(contentLengthField->second,
+		                              bodyBytesNeeded))
 		{
 			return fail(BAD_REQUEST);
 		}

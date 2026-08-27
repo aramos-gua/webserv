@@ -24,6 +24,7 @@
 #include "HttpStatusCode.hpp"
 #include "HttpStatusCodeHelpers.hpp"
 #include "HttpVersionHelpers.hpp"
+#include "StringHelpers.hpp"
 
 // Feeding the whole request in one go and feeding it a byte at a time have to
 // produce identical results, so the chunk size is a command line option and the
@@ -45,13 +46,12 @@ static std::string readWholeFile(const std::string &filePath)
 	return contents.str();
 }
 
-static std::size_t parseSize(const std::string &option,
-                             const std::string &value)
+static std::size_t readSizeOption(const std::string &option,
+                                  const std::string &value)
 {
-	std::istringstream valueStream(value);
 	std::size_t size;
 
-	if (!(valueStream >> size) || !valueStream.eof())
+	if (!StringHelpers::parseSize(value, size))
 	{
 		throw std::runtime_error("Invalid value \"" + value + "\" for " +
 		                         option);
@@ -111,11 +111,11 @@ int main(int argc, char **argv)
 
 			if (argument == "--chunk" && !isLastArgument)
 			{
-				chunkSize = parseSize(argument, argv[++argumentIndex]);
+				chunkSize = readSizeOption(argument, argv[++argumentIndex]);
 			}
 			else if (argument == "--max-body-size" && !isLastArgument)
 			{
-				maxBodySize = parseSize(argument, argv[++argumentIndex]);
+				maxBodySize = readSizeOption(argument, argv[++argumentIndex]);
 				maxBodySizeGiven = true;
 			}
 			else if (!argument.empty() && argument[0] != '-' &&
