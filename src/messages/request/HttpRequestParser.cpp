@@ -341,7 +341,7 @@ bool HttpRequestParser::parseHeaders(void)
 		// value included, since it names no authority. HTTP/1.0 predates
 		// virtual hosting and carries neither requirement, so the check is
 		// deliberately version-specific.
-		std::map<std::string, std::string>::const_iterator hostField =
+		HttpRequest::t_headers::const_iterator hostField =
 			request.getHeaders().find("host");
 		if (request.getVersion() == HTTP_1_1 &&
 		    (hostField == request.getHeaders().end() ||
@@ -385,9 +385,9 @@ bool HttpRequestParser::parseHeaders(void)
 
 bool HttpRequestParser::startBody(void)
 {
-	std::map<std::string, std::string>::const_iterator transferEncodingField =
+	HttpRequest::t_headers::const_iterator transferEncodingField =
 		request.getHeaders().find("transfer-encoding");
-	std::map<std::string, std::string>::const_iterator contentLengthField =
+	HttpRequest::t_headers::const_iterator contentLengthField =
 		request.getHeaders().find("content-length");
 
 	if (transferEncodingField != request.getHeaders().end())

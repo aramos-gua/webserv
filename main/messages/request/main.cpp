@@ -15,7 +15,6 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
-#include <map>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -71,7 +70,7 @@ static void printRequest(const HttpRequest &request)
 					 request.getVersion())
 			  << std::endl;
 	std::cout << "HEADERS:" << std::endl;
-	for (std::map<std::string, std::string>::const_iterator headerIterator =
+	for (HttpRequest::t_headers::const_iterator headerIterator =
 	         request.getHeaders().begin();
 	     headerIterator != request.getHeaders().end(); ++headerIterator)
 	{

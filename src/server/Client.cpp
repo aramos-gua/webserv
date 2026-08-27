@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 #include <cstddef>
-#include <map>
 #include <stdexcept>
 #include <sys/socket.h>
 
@@ -123,7 +122,7 @@ void Client::handleRequest(void)
 	const HttpRequest &request = requestParser.getRequest();
 	std::string hostHeader;
 
-	std::map<std::string, std::string>::const_iterator hostIterator =
+	HttpRequest::t_headers::const_iterator hostIterator =
 		request.getHeaders().find("host");
 	if (hostIterator != request.getHeaders().end())
 	{

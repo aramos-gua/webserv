@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:26:17 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 17:59:10 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 19:08:37 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,8 @@
 class HttpRequest
 {
 public:
+	typedef std::map<std::string, std::string> t_headers;
+
 	HttpRequest(void);
 	HttpRequest(const HttpRequest &other);
 	HttpRequest &operator=(const HttpRequest &other);
@@ -31,7 +33,7 @@ public:
 	HttpMethod getMethod(void) const;
 	const std::string &getPath(void) const;
 	HttpVersion getVersion(void) const;
-	const std::map<std::string, std::string> &getHeaders(void) const;
+	const t_headers &getHeaders(void) const;
 	const std::string &getBody(void) const;
 
 	void setMethod(HttpMethod method);
@@ -47,7 +49,7 @@ private:
 	HttpMethod method;
 	std::string path;
 	HttpVersion version;
-	std::map<std::string, std::string> headers;
+	t_headers headers;
 	std::string body;
 };
 
