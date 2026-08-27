@@ -268,6 +268,91 @@ HEADERS:
 BODY: 0 bytes"
 	run_request_test
 
+	export TEST_NAME="Chunked body reassembled from several chunks"
+	export REQUEST_FILE="chunked-body.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: POST
+PATH: /upload
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+  transfer-encoding: \"chunked\"
+BODY: 11 bytes
+hello world"
+	run_request_test
+
+	export TEST_NAME="Chunked body with no chunks at all"
+	export REQUEST_FILE="chunked-body-empty.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: POST
+PATH: /upload
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+  transfer-encoding: \"chunked\"
+BODY: 0 bytes"
+	run_request_test
+
+	export TEST_NAME="Chunk size given in uppercase hexadecimal"
+	export REQUEST_FILE="chunked-body-uppercase-hex.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: POST
+PATH: /upload
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+  transfer-encoding: \"chunked\"
+BODY: 10 bytes
+0123456789"
+	run_request_test
+
+
+	export TEST_NAME="Trailer fields are discarded, not merged into headers"
+	export REQUEST_FILE="chunked-body-with-trailers.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: POST
+PATH: /upload
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+  transfer-encoding: \"chunked\"
+BODY: 5 bytes
+hello"
+	run_request_test
+
+	export TEST_NAME="Transfer encoding named in uppercase"
+	export REQUEST_FILE="chunked-transfer-encoding-uppercase.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: POST
+PATH: /upload
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+  transfer-encoding: \"CHUNKED\"
+BODY: 5 bytes
+hello"
+	run_request_test
+
+	export TEST_NAME="Request pipelined behind a chunked body"
+	export REQUEST_FILE="chunked-body-then-pipelined.http"
+	export EXPECTED="\
+RESULT: COMPLETE
+METHOD: POST
+PATH: /upload
+VERSION: HTTP/1.1
+HEADERS:
+  host: \"example.com\"
+  transfer-encoding: \"chunked\"
+BODY: 5 bytes
+hello
+LEFTOVER: 43 bytes"
+	run_request_test
+
 	# Bytes arriving after a complete request belong to the next request on the
 	# connection and must survive both feed() and reset(). The count is exactly
 	# the length of the second request below.
@@ -331,6 +416,16 @@ if [ "$ANSWER" != "n" ]; then
 
 	export TEST_NAME="Headers never terminated"
 	export REQUEST_FILE="truncated-headers.http"
+	export EXPECTED="RESULT: INCOMPLETE"
+	run_request_test
+
+	export TEST_NAME="Chunk data shorter than its declared size"
+	export REQUEST_FILE="chunked-truncated-data.http"
+	export EXPECTED="RESULT: INCOMPLETE"
+	run_request_test
+
+	export TEST_NAME="Chunked body with no terminating zero chunk"
+	export REQUEST_FILE="chunked-no-last-chunk.http"
 	export EXPECTED="RESULT: INCOMPLETE"
 	run_request_test
 
@@ -636,6 +731,84 @@ STATUS: 400 Bad Request"
 	export EXPECTED="\
 RESULT: INVALID
 STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Transfer-Encoding together with Content-Length"
+	export REQUEST_FILE="chunked-with-content-length.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Transfer encoding other than chunked"
+	export REQUEST_FILE="unsupported-transfer-encoding.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 501 Not Implemented"
+	run_request_test
+
+	export TEST_NAME="Unrecognised transfer encoding"
+	export REQUEST_FILE="unrecognised-transfer-encoding.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Transfer encoding list"
+	export REQUEST_FILE="transfer-encoding-list.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 501 Not Implemented"
+	run_request_test
+
+	export TEST_NAME="Empty Transfer-Encoding value"
+	export REQUEST_FILE="transfer-encoding-empty.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Chunk extensions are rejected"
+	export REQUEST_FILE="chunked-body-with-extensions.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Chunk size that is not hexadecimal"
+	export REQUEST_FILE="chunked-bad-size.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Chunk not terminated by CRLF"
+	export REQUEST_FILE="chunked-missing-terminator.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Chunked body on an HTTP/1.0 request"
+	export REQUEST_FILE="chunked-on-http-1-0.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Malformed trailer field"
+	export REQUEST_FILE="chunked-malformed-trailer.http"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 400 Bad Request"
+	run_request_test
+
+	export TEST_NAME="Chunked body larger than the configured limit"
+	export REQUEST_FILE="chunked-body.http"
+	export OPTIONS="--max-body-size 8"
+	export EXPECTED="\
+RESULT: INVALID
+STATUS: 413 Content Too Large"
 	run_request_test
 
 	export TEST_NAME="Body larger than the configured limit"

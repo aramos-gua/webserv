@@ -35,7 +35,8 @@ SRCS_BASE :=			ConfigTypeHelpers.cpp \
 						SpecialServerNames.cpp \
 						SpecialServerNamesLastComparator.cpp \
 						StringBase.cpp \
-						StringHelpers.cpp
+						StringHelpers.cpp \
+						TransferEncodingHelpers.cpp
 SRCS :=					$(addprefix $(SRC_DIR)/$(NAME)/,$(SRCS_BASE))
 OBJS :=					$(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 LIB :=					$(LIB_DIR)/lib$(subst /,-,$(NAME)).a

@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:33:06 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 16:25:52 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 17:45:36 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 #include "HttpRequest.hpp"
 #include "HttpStatusCode.hpp"
@@ -37,6 +38,8 @@ public:
 	HttpRequestParser &operator=(const HttpRequestParser &other);
 	~HttpRequestParser(void);
 
+	// NOTE: prefer many smaller calls to one large one. Illustrative example:
+	// 32MB in a single call takes around 50x longer than in many 2KB reads.
 	Result feed(const char *data, std::size_t len);
 	const HttpRequest &getRequest(void) const;
 	HttpStatusCode getErrorStatusCode(void) const;
@@ -49,6 +52,9 @@ private:
 		PARSE_REQUEST_LINE,
 		PARSE_HEADERS,
 		PARSE_BODY,
+		PARSE_CHUNK_SIZE,
+		PARSE_CHUNK_DATA,
+		PARSE_TRAILERS,
 		PARSE_DONE,
 		PARSE_ERROR
 	};
@@ -61,16 +67,25 @@ private:
 	std::size_t maxBodySize;
 	std::size_t bodyBytesNeeded;
 	std::size_t headerCount;
+	std::size_t chunkBytesNeeded;
 
 	bool parseRequestLine(void);
 	bool parseHeaders(void);
 	bool parseBody(void);
+	bool parseChunkSize(void);
+	bool parseChunkData(void);
+	bool parseTrailers(void);
+
+	bool startBody(void);
+	bool appendToBodyWithinLimit(const std::string &data);
 
 	static std::size_t getMinimumConfirmedLineLength(const std::string &str,
 	                                                 std::size_t terminatorPos);
+	static std::vector<std::string> splitOnCommas(const std::string &str);
 	static bool isValidFieldName(const std::string &fieldName);
 	static std::string trim(const std::string &str);
 	static bool isValidContentLength(const std::string &str, std::size_t &out);
+	static bool isValidChunkSize(const std::string &str, std::size_t &out);
 };
 
 #endif

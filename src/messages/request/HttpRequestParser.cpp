@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/30 12:35:42 by aramos            #+#    #+#             */
-/*   Updated: 2026/08/27 16:50:14 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 17:47:48 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,8 @@
 #include "HttpRequestParser.hpp"
 #include "HttpStatusCode.hpp"
 #include "HttpVersionHelpers.hpp"
+#include "StringHelpers.hpp"
+#include "TransferEncodingHelpers.hpp"
 
 // NOLINTBEGIN(bugprone-throwing-static-initialization)
 
@@ -45,7 +47,8 @@ static const std::set<std::string> SINGLE_OCCURRENCE_FIELD_NAMES(
 /* ************************************************************************** */
 HttpRequestParser::HttpRequestParser(std::size_t maxBodySize)
 	: state(PARSE_REQUEST_LINE), errorStatusCode(NO_STATUS_CODE),
-	  maxBodySize(maxBodySize), bodyBytesNeeded(0), headerCount(0)
+	  maxBodySize(maxBodySize), bodyBytesNeeded(0), headerCount(0),
+	  chunkBytesNeeded(0)
 {
 }
 
@@ -55,7 +58,8 @@ HttpRequestParser::HttpRequestParser(std::size_t maxBodySize)
 HttpRequestParser::HttpRequestParser(const HttpRequestParser &other)
 	: state(other.state), buffer(other.buffer), request(other.request),
 	  errorStatusCode(other.errorStatusCode), maxBodySize(other.maxBodySize),
-	  bodyBytesNeeded(other.bodyBytesNeeded), headerCount(other.headerCount)
+	  bodyBytesNeeded(other.bodyBytesNeeded), headerCount(other.headerCount),
+	  chunkBytesNeeded(other.chunkBytesNeeded)
 {
 }
 
@@ -73,6 +77,7 @@ HttpRequestParser &HttpRequestParser::operator=(const HttpRequestParser &other)
 		maxBodySize = other.maxBodySize;
 		bodyBytesNeeded = other.bodyBytesNeeded;
 		headerCount = other.headerCount;
+		chunkBytesNeeded = other.chunkBytesNeeded;
 	}
 	return *this;
 }
@@ -104,6 +109,25 @@ std::size_t HttpRequestParser::getMinimumConfirmedLineLength(
 		return str.size() - 1;
 	}
 	return str.size();
+}
+
+std::vector<std::string> HttpRequestParser::splitOnCommas(
+	const std::string &str)
+{
+	std::vector<std::string> elements;
+	std::size_t start = 0;
+
+	while (true)
+	{
+		std::size_t separator = str.find(',', start);
+		if (separator == std::string::npos)
+		{
+			elements.push_back(trim(str.substr(start)));
+			return elements;
+		}
+		elements.push_back(trim(str.substr(start, separator - start)));
+		start = separator + 1;
+	}
 }
 
 bool HttpRequestParser::isValidFieldName(const std::string &fieldName)
@@ -174,6 +198,40 @@ bool HttpRequestParser::isValidContentLength(const std::string &str,
 	return true;
 }
 
+bool HttpRequestParser::isValidChunkSize(const std::string &str,
+                                         std::size_t &out)
+{
+	static const std::size_t HEX_BASE = 16;
+	static const std::size_t DECIMAL_DIGIT_COUNT = 10;
+
+	if (str.empty())
+	{
+		return false;
+	}
+	std::size_t value = 0;
+	for (std::size_t i = 0; i < str.size(); ++i)
+	{
+		unsigned char character = static_cast<unsigned char>(str[i]);
+		if (!isxdigit(character))
+		{
+			return false;
+		}
+		std::size_t digit =
+			isdigit(character)
+				? static_cast<std::size_t>(character - '0')
+				: static_cast<std::size_t>(tolower(character) - 'a') +
+					  DECIMAL_DIGIT_COUNT;
+		if (value >
+		    (std::numeric_limits<std::size_t>::max() - digit) / HEX_BASE)
+		{
+			return false;
+		}
+		value = (value * HEX_BASE) + digit;
+	}
+	out = value;
+	return true;
+}
+
 void HttpRequestParser::resetInPreparationForNextRequest(void)
 {
 	state = PARSE_REQUEST_LINE;
@@ -181,6 +239,7 @@ void HttpRequestParser::resetInPreparationForNextRequest(void)
 	errorStatusCode = NO_STATUS_CODE;
 	bodyBytesNeeded = 0;
 	headerCount = 0;
+	chunkBytesNeeded = 0;
 }
 
 const HttpRequest &HttpRequestParser::getRequest(void) const
@@ -312,26 +371,7 @@ bool HttpRequestParser::parseHeaders(void)
 			errorStatusCode = BAD_REQUEST;
 			return false;
 		}
-		std::map<std::string, std::string>::const_iterator contentLengthField =
-			request.headers.find("content-length");
-		if (contentLengthField != request.headers.end())
-		{
-			if (!isValidContentLength(contentLengthField->second,
-			                          bodyBytesNeeded))
-			{
-				state = PARSE_ERROR;
-				errorStatusCode = BAD_REQUEST;
-				return false;
-			}
-			if (bodyBytesNeeded > maxBodySize)
-			{
-				state = PARSE_ERROR;
-				errorStatusCode = CONTENT_TOO_LARGE;
-				return false;
-			}
-		}
-		state = PARSE_BODY;
-		return true;
+		return startBody();
 	}
 	std::size_t sep = line.find(":");
 	if (sep == std::string::npos)
@@ -384,6 +424,196 @@ bool HttpRequestParser::parseHeaders(void)
 	return true;
 }
 
+bool HttpRequestParser::startBody(void)
+{
+	std::map<std::string, std::string>::const_iterator transferEncodingField =
+		request.headers.find("transfer-encoding");
+	std::map<std::string, std::string>::const_iterator contentLengthField =
+		request.headers.find("content-length");
+
+	if (transferEncodingField != request.headers.end())
+	{
+		if (contentLengthField != request.headers.end())
+		{
+			state = PARSE_ERROR;
+			errorStatusCode = BAD_REQUEST;
+			return false;
+		}
+		std::vector<std::string> codingNames =
+			splitOnCommas(transferEncodingField->second);
+		std::vector<TransferEncoding> encodings;
+		for (std::size_t i = 0; i < codingNames.size(); ++i)
+		{
+			try
+			{
+				encodings.push_back(
+					TransferEncodingHelpers::getTransferEncodingForString(
+						codingNames[i]));
+			}
+			catch (const std::out_of_range &)
+			{
+				state = PARSE_ERROR;
+				errorStatusCode = BAD_REQUEST;
+				return false;
+			}
+		}
+		if (encodings.size() != 1 ||
+		    !TransferEncodingHelpers::getWhetherTransferEncodingIsSupported(
+				encodings[0]))
+		{
+			state = PARSE_ERROR;
+			errorStatusCode = NOT_IMPLEMENTED;
+			return false;
+		}
+		if (request.version != HTTP_1_1)
+		{
+			state = PARSE_ERROR;
+			errorStatusCode = BAD_REQUEST;
+			return false;
+		}
+		state = PARSE_CHUNK_SIZE;
+		return true;
+	}
+	if (contentLengthField != request.headers.end())
+	{
+		if (!isValidContentLength(contentLengthField->second, bodyBytesNeeded))
+		{
+			state = PARSE_ERROR;
+			errorStatusCode = BAD_REQUEST;
+			return false;
+		}
+		if (bodyBytesNeeded > maxBodySize)
+		{
+			state = PARSE_ERROR;
+			errorStatusCode = CONTENT_TOO_LARGE;
+			return false;
+		}
+	}
+	state = PARSE_BODY;
+	return true;
+}
+
+// A chunked body has no length to check up front, so the limit is applied as
+// each chunk lands instead.
+bool HttpRequestParser::appendToBodyWithinLimit(const std::string &data)
+{
+	if (request.body.size() + data.size() > maxBodySize)
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = CONTENT_TOO_LARGE;
+		return false;
+	}
+	request.body += data;
+	return true;
+}
+
+bool HttpRequestParser::parseChunkSize(void)
+{
+	static const std::size_t MAX_CHUNK_SIZE_LINE = 8192;
+	std::size_t pos = buffer.find("\r\n");
+	std::size_t minimumConfirmedLineLength =
+		getMinimumConfirmedLineLength(buffer, pos);
+	if (minimumConfirmedLineLength > MAX_CHUNK_SIZE_LINE)
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = BAD_REQUEST;
+		return false;
+	}
+	if (pos == std::string::npos)
+	{
+		return false;
+	}
+	std::string line = buffer.substr(0, pos);
+	buffer.erase(0, pos + 2);
+	// NOTE: chunk extensions are not supported. A slight violation of RFC 9112
+	// in favour of simplicity and not having to consider malicious uses that
+	// could slow down the server
+	if (line.find(';') != std::string::npos)
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = BAD_REQUEST;
+		return false;
+	}
+	if (!isValidChunkSize(line, chunkBytesNeeded))
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = BAD_REQUEST;
+		return false;
+	}
+	// A zero size marks the last chunk, after which only trailers remain.
+	state = chunkBytesNeeded == 0 ? PARSE_TRAILERS : PARSE_CHUNK_DATA;
+	return true;
+}
+
+bool HttpRequestParser::parseChunkData(void)
+{
+	// The chunk's bytes are followed by their own CRLF, which is framing
+	// rather than content and has to be present before the chunk is complete.
+	if (buffer.size() < chunkBytesNeeded + 2)
+	{
+		return false;
+	}
+	if (buffer.compare(chunkBytesNeeded, 2, "\r\n") != 0)
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = BAD_REQUEST;
+		return false;
+	}
+	if (!appendToBodyWithinLimit(buffer.substr(0, chunkBytesNeeded)))
+	{
+		return false;
+	}
+	buffer.erase(0, chunkBytesNeeded + 2);
+	chunkBytesNeeded = 0;
+	state = PARSE_CHUNK_SIZE;
+	return true;
+}
+
+bool HttpRequestParser::parseTrailers(void)
+{
+	static const std::size_t MAX_TRAILER_LINE = 8192;
+	std::size_t pos = buffer.find("\r\n");
+	std::size_t minimumConfirmedLineLength =
+		getMinimumConfirmedLineLength(buffer, pos);
+	if (minimumConfirmedLineLength > MAX_TRAILER_LINE)
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
+		return false;
+	}
+	if (pos == std::string::npos)
+	{
+		return false;
+	}
+	std::string line = buffer.substr(0, pos);
+	buffer.erase(0, pos + 2);
+	if (line.empty())
+	{
+		request.contentLength = request.body.size();
+		state = PARSE_DONE;
+		return true;
+	}
+	// Trailer fields are checked for well-formedness and then discarded. They
+	// are not merged into the header section: a trailer arrives after the
+	// point where the headers have already been acted on, so honouring one
+	// would let a sender revise decisions that have already been made.
+	std::size_t sep = line.find(":");
+	if (sep == std::string::npos || !isValidFieldName(line.substr(0, sep)))
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = BAD_REQUEST;
+		return false;
+	}
+	static const std::size_t MAX_HEADER_COUNT = 100;
+	if (++headerCount > MAX_HEADER_COUNT)
+	{
+		state = PARSE_ERROR;
+		errorStatusCode = REQUEST_HEADER_FIELDS_TOO_LARGE;
+		return false;
+	}
+	return true;
+}
+
 bool HttpRequestParser::parseBody(void)
 {
 	if (bodyBytesNeeded == 0)
@@ -429,6 +659,18 @@ HttpRequestParser::Result HttpRequestParser::feed(const char *data,
 		else if (state == PARSE_BODY)
 		{
 			progress = parseBody();
+		}
+		else if (state == PARSE_CHUNK_SIZE)
+		{
+			progress = parseChunkSize();
+		}
+		else if (state == PARSE_CHUNK_DATA)
+		{
+			progress = parseChunkData();
+		}
+		else if (state == PARSE_TRAILERS)
+		{
+			progress = parseTrailers();
 		}
 	}
 	if (state == PARSE_DONE)
