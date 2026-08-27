@@ -7,5 +7,7 @@ lib/
 log/
 
 # Test config files
-assets/config/conf.d/
-assets/config/sites-enabled/
+assets/config/conf.d/*
+!assets/config/conf.d/.gitkeep
+assets/config/sites-enabled/*
+!assets/config/sites-enabled/.gitkeep
