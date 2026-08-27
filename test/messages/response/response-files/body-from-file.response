@@ -1,0 +1,4 @@
+STATUS 200
+VERSION HTTP/1.1
+HEADER Content-Type: text/plain
+BODYFILE bodies/small.txt

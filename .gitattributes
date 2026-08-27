@@ -1,3 +1,7 @@
 # NOTE: HTTP is a CRLF protocol, so the request fixtures contain real
 # carriage returns and must survive checkout and checkin untouched
 test/messages/request/request-files/*.http -text
+
+# The external body fixtures are compared by byte count, so translating
+# their line endings on checkout would change the expected Content-Length
+test/messages/response/response-files/bodies/* -text

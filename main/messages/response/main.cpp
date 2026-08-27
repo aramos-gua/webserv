@@ -14,14 +14,18 @@
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
+#include <fcntl.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "HttpResponseBuilder.hpp"
 #include "HttpVersionHelpers.hpp"
+#include "ResponseBodyReader.hpp"
 
 // The builder produces bytes rather than consuming them, so a response file
 // describes the response to build instead of holding a message to parse:
@@ -34,7 +38,8 @@
 //
 // Every directive is optional and BODY must come last. One trailing newline is
 // stripped from the body, so that a file can end the way an editor leaves it.
-static const char *const USAGE_SUFFIX = " [--raw] <path to response file>";
+static const char *const USAGE_SUFFIX =
+	" [--raw] [--read-size <size>] <path to response file>";
 
 static std::string readWholeFile(const std::string &filePath)
 {
@@ -48,6 +53,21 @@ static std::string readWholeFile(const std::string &filePath)
 	std::ostringstream contents;
 	contents << fileStream.rdbuf();
 	return contents.str();
+}
+
+// A body file is named relative to the response file that mentions it, so a
+// fixture works wherever the suite is run from. Same rule the config parser
+// uses for include.
+static std::string resolveRelativeTo(const std::string &referencePath,
+                                     const std::string &path)
+{
+	std::size_t lastSlash = referencePath.rfind('/');
+
+	if ((!path.empty() && path[0] == '/') || lastSlash == std::string::npos)
+	{
+		return path;
+	}
+	return referencePath.substr(0, lastSlash + 1) + path;
 }
 
 static std::string takeLine(const std::string &text, std::size_t &offset)
@@ -126,7 +146,9 @@ static void applyStatusDirective(HttpResponse &response,
 	response.statusCode = static_cast<HttpStatusCode>(statusCode);
 }
 
-static HttpResponse readResponseSpecification(const std::string &text)
+static HttpResponse readResponseSpecification(const std::string &text,
+                                              const std::string &specFilePath,
+                                              std::string &bodyFilePath)
 {
 	HttpResponse response;
 	std::size_t offset = 0;
@@ -143,6 +165,24 @@ static HttpResponse readResponseSpecification(const std::string &text)
 		std::string value =
 			space == std::string::npos ? "" : line.substr(space + 1);
 
+		if (directive == "BODYFILE")
+		{
+			// The response is told the length and nothing else. The descriptor
+			// stays with this function's caller, which is exactly how Client
+			// holds it: borrowed for the length of the send, owned elsewhere.
+			std::string resolved = resolveRelativeTo(specFilePath, value);
+			struct stat fileStatus;
+			if (stat(resolved.c_str(), &fileStatus) != 0)
+			{
+				throw std::runtime_error("Couldn't stat body file \"" + value +
+				                         "\"");
+			}
+			response.bodyIsExternal = true;
+			response.externalBodyLength =
+				static_cast<std::size_t>(fileStatus.st_size);
+			bodyFilePath = resolved;
+			continue;
+		}
 		if (directive == "BODY")
 		{
 			// Verbatim to the end, less one trailing newline if there is one.
@@ -319,6 +359,7 @@ int main(int argc, char **argv)
 {
 	std::string filePath;
 	bool raw = false;
+	std::size_t readSize = ResponseBodyReader::DEFAULT_READ_SIZE;
 
 	try
 	{
@@ -329,6 +370,15 @@ int main(int argc, char **argv)
 			if (argument == "--raw")
 			{
 				raw = true;
+			}
+			else if (argument == "--read-size" && argumentIndex + 1 < argc)
+			{
+				std::istringstream valueStream(argv[++argumentIndex]);
+				if (!(valueStream >> readSize) || !valueStream.eof() ||
+				    readSize == 0)
+				{
+					throw std::runtime_error("Invalid value for --read-size");
+				}
 			}
 			else if (!argument.empty() && argument[0] != '-' &&
 			         filePath.empty())
@@ -347,9 +397,35 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		HttpResponse response =
-			readResponseSpecification(readWholeFile(filePath));
+		std::string bodyFilePath;
+		HttpResponse response = readResponseSpecification(
+			readWholeFile(filePath), filePath, bodyFilePath);
 		std::string built = HttpResponseBuilder::build(response);
+
+		if (!bodyFilePath.empty())
+		{
+			int bodyFileDescriptor = open(bodyFilePath.c_str(), O_RDONLY);
+			if (bodyFileDescriptor < 0)
+			{
+				throw std::runtime_error("Couldn't open body file \"" +
+				                         bodyFilePath + "\" for reading");
+			}
+			// Drained the way Client drains it: repeatedly, a bounded piece at
+			// a time, until the promised length has been met. --read-size 1
+			// forces the most fragmented case, as --chunk 1 does for requests.
+			std::size_t remaining = response.externalBodyLength;
+			while (remaining > 0)
+			{
+				ssize_t appended = ResponseBodyReader::appendUpTo(
+					bodyFileDescriptor, remaining, readSize, built);
+				if (appended <= 0)
+				{
+					break;
+				}
+				remaining -= static_cast<std::size_t>(appended);
+			}
+			close(bodyFileDescriptor);
+		}
 
 		if (raw)
 		{

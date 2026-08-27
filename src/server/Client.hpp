@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:40:06 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/26 02:10:31 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 20:49:59 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,8 +40,13 @@ public:
 	void onRecv(int fileDescriptor);
 	void onSend(int fileDescriptor);
 
+	int getBodyFileDescriptor(void) const;
+
 private:
 	std::string sendBuffer;
+	std::size_t sendOffset;
+	int bodyFileDescriptor;
+	std::size_t bodyBytesRemaining;
 	bool shouldClose;
 	const HttpConfig *httpConfig;
 	std::string addressPortPair;
@@ -54,6 +59,9 @@ private:
 
 	static std::string getServerNameFromHostHeader(
 		const std::string &hostHeader);
+
+	void discardSentBytes(void);
+	void refillFromBody(void);
 };
 
 #endif

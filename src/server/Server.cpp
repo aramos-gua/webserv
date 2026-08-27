@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:40:09 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/27 07:17:20 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 20:51:00 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -214,6 +214,11 @@ void Server::removeClient(std::size_t pollFdIndex)
 	int fileDescriptor = pollFds[pollFdIndex].fd;
 
 	std::cout << "Removing fd=" << fileDescriptor << std::endl;
+	std::map<int, Client>::const_iterator client = clients.find(fileDescriptor);
+	if (client != clients.end() && client->second.getBodyFileDescriptor() >= 0)
+	{
+		close(client->second.getBodyFileDescriptor());
+	}
 	close(fileDescriptor);
 	clients.erase(fileDescriptor);
 	pollFds.erase(pollFds.begin() + static_cast<std::ptrdiff_t>(pollFdIndex));

@@ -27,6 +27,48 @@ run_response_test() {
 	export OPTIONS=""
 }
 
+# As above, for a response whose body comes from a file. Also requires that
+# reading that body one byte at a time gives exactly the same result: how the
+# body is split across reads must never change the response, which is the same
+# invariant --chunk 1 enforces on the request side.
+run_body_test() {
+	RESPONSE_FILE="$RESPONSES_DIR/$RESPONSE_FILE"
+	export WHOLE="$($BUILDER $OPTIONS $RESPONSE_FILE 2>&1)"
+	export FRAGMENTED="$($BUILDER --read-size 1 $OPTIONS $RESPONSE_FILE 2>&1)"
+	if ! cmp -s <(echo "$EXPECTED") <(echo "$WHOLE"); then
+		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+			&& diff <(echo "$EXPECTED") <(echo "$WHOLE")
+	elif ! cmp -s <(echo "$WHOLE") <(echo "$FRAGMENTED"); then
+		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+			&& echo "Reading the body one byte at a time gave a different result:" \
+			&& diff <(echo "$WHOLE") <(echo "$FRAGMENTED")
+	else
+		echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME"
+	fi
+	export OPTIONS=""
+}
+
+# As run_body_test, but comparing everything except the body content, for a
+# body too large to write out in full
+run_body_summary_test() {
+	RESPONSE_FILE="$RESPONSES_DIR/$RESPONSE_FILE"
+	export SUMMARISE='/^BODY: /{print; skip=1; next} /^FRAMING: /{skip=0} !skip'
+	export WHOLE="$($BUILDER $OPTIONS $RESPONSE_FILE 2>&1 | awk "$SUMMARISE")"
+	export FRAGMENTED="$($BUILDER --read-size 1 $OPTIONS $RESPONSE_FILE 2>&1 \
+		| awk "$SUMMARISE")"
+	if ! cmp -s <(echo "$EXPECTED") <(echo "$WHOLE"); then
+		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+			&& diff <(echo "$EXPECTED") <(echo "$WHOLE")
+	elif ! cmp -s <(echo "$WHOLE") <(echo "$FRAGMENTED"); then
+		echo -en "[${RED}FAIL${DEFAULT}] " && echo "$TEST_NAME" \
+			&& echo "Reading the body one byte at a time gave a different result:" \
+			&& diff <(echo "$WHOLE") <(echo "$FRAGMENTED")
+	else
+		echo -en "[${GREEN}PASS${DEFAULT}] " && echo "$TEST_NAME"
+	fi
+	export OPTIONS=""
+}
+
 # Check that a bad invocation produces the expected usage or error message
 run_usage_test() {
 	export ACTUAL="$($BUILDER $OPTIONS 2>&1)"
@@ -46,13 +88,13 @@ if [ "$ANSWER" != "n" ]; then
 	export TEST_NAME="Missing response file"
 	export OPTIONS=""
 	export EXPECTED="\
-Usage: $BUILDER [--raw] <path to response file>"
+Usage: $BUILDER [--raw] [--read-size <size>] <path to response file>"
 	run_usage_test
 
 	export TEST_NAME="Unknown option"
 	export OPTIONS="--nonsense $RESPONSES_DIR/simple-ok.response"
 	export EXPECTED="\
-Usage: $BUILDER [--raw] <path to response file>"
+Usage: $BUILDER [--raw] [--read-size <size>] <path to response file>"
 	run_usage_test
 
 	export TEST_NAME="Nonexistent response file"
@@ -354,4 +396,50 @@ Connection: close\\r\\n
 Server: penguinx\\r\\n
 \\r\\n"
 	run_response_test
+
+	echo
+	echo "*** EXTERNAL BODY TESTS ***"
+	# The response records only the length of a body it does not hold, and the
+	# caller streams the bytes from the descriptor it owns. Content-Length must
+	# come from the file rather than from anything in the response.
+	export TEST_NAME="Body streamed from a file"
+	export RESPONSE_FILE="body-from-file.response"
+	export EXPECTED="\
+STATUS-LINE: HTTP/1.1 200 OK
+HEADERS:
+  Content-Type: text/plain
+  Connection: close
+  Date: <IMF-fixdate>
+  Server: penguinx
+  Content-Length: 17
+BODY: 17 bytes
+hello from a file
+FRAMING: OK"
+	run_body_test
+
+	export TEST_NAME="Empty external body"
+	export RESPONSE_FILE="body-from-empty-file.response"
+	export EXPECTED="\
+STATUS-LINE: HTTP/1.1 200 OK
+HEADERS:
+  Connection: close
+  Date: <IMF-fixdate>
+  Server: penguinx
+  Content-Length: 0
+BODY: 0 bytes
+FRAMING: OK"
+	run_body_test
+
+	export TEST_NAME="External body larger than one read"
+	export RESPONSE_FILE="body-from-large-file.response"
+	export EXPECTED="\
+STATUS-LINE: HTTP/1.1 200 OK
+HEADERS:
+  Connection: close
+  Date: <IMF-fixdate>
+  Server: penguinx
+  Content-Length: 20000
+BODY: 20000 bytes
+FRAMING: OK"
+	run_body_summary_test
 fi

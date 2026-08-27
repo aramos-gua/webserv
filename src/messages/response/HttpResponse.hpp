@@ -13,6 +13,7 @@
 #ifndef HTTP_RESPONSE_HPP
 #define HTTP_RESPONSE_HPP
 
+#include <cstddef>
 #include <map>
 #include <string>
 
@@ -24,10 +25,24 @@ struct HttpResponse
 	HttpVersion version;
 	HttpStatusCode statusCode;
 	std::map<std::string, std::string> headers;
-	std::string body;
 
-	HttpResponse(void): statusCode(OK), version(HTTP_1_1)
+	// The body is either held here, or it lives outside the response and only
+	// its length is recorded. An external body is sent by whoever owns its file
+	// descriptor; the response needs nothing from it but the length, which is
+	// what Content-Length is computed from.
+	std::string body;
+	bool bodyIsExternal;
+	std::size_t externalBodyLength;
+
+	HttpResponse(void)
+		: version(HTTP_1_1), statusCode(OK), bodyIsExternal(false),
+		  externalBodyLength(0)
 	{
+	}
+
+	std::size_t getBodyLength(void) const
+	{
+		return bodyIsExternal ? externalBodyLength : body.size();
 	}
 };
 

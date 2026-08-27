@@ -22,7 +22,8 @@ MAIN_DIR :=				$(REPO_DIR)/main
 TEST_DIR :=				$(REPO_DIR)/test
 MAKE_DIR :=				$(REPO_DIR)/make
 
-SRCS_BASE :=			HttpResponseBuilder.cpp
+SRCS_BASE :=			HttpResponseBuilder.cpp \
+						ResponseBodyReader.cpp
 SRCS :=					$(addprefix $(SRC_DIR)/$(NAME)/,$(SRCS_BASE))
 OBJS :=					$(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 BIN :=					$(BIN_DIR)/$(subst /,-,$(NAME))

@@ -6,7 +6,7 @@
 /*   By: emflynn <emflynn@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/25 21:39:35 by manwar            #+#    #+#             */
-/*   Updated: 2026/08/27 15:46:35 by emflynn          ###   ########.fr       */
+/*   Updated: 2026/08/27 20:49:06 by emflynn          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,20 +16,25 @@
 
 #include "Client.hpp"
 #include "HttpConfig.hpp"
+#include "ResponseBodyReader.hpp"
 #include "ServerConfig.hpp"
 #include "StringBase.hpp"
 #include "StringHelpers.hpp"
 
 static const int BUFSIZE = 2048; // TODO: Change?
 
-Client::Client(void): shouldClose(false), httpConfig(NULL)
+Client::Client(void)
+	: sendOffset(0), bodyFileDescriptor(-1), bodyBytesRemaining(0),
+	  shouldClose(false), httpConfig(NULL)
 {
 }
 
 Client::Client(const Client &copy)
-	: sendBuffer(copy.sendBuffer), shouldClose(copy.shouldClose),
-	  httpConfig(copy.httpConfig), addressPortPair(copy.addressPortPair),
-	  requestParser(copy.requestParser)
+	: sendBuffer(copy.sendBuffer), sendOffset(copy.sendOffset),
+	  bodyFileDescriptor(copy.bodyFileDescriptor),
+	  bodyBytesRemaining(copy.bodyBytesRemaining),
+	  shouldClose(copy.shouldClose), httpConfig(copy.httpConfig),
+	  addressPortPair(copy.addressPortPair), requestParser(copy.requestParser)
 {
 }
 
@@ -42,6 +47,9 @@ Client &Client::operator=(const Client &copy)
 	if (this != &copy)
 	{
 		this->sendBuffer = copy.sendBuffer;
+		this->sendOffset = copy.sendOffset;
+		this->bodyFileDescriptor = copy.bodyFileDescriptor;
+		this->bodyBytesRemaining = copy.bodyBytesRemaining;
 		this->shouldClose = copy.shouldClose;
 		this->httpConfig = copy.httpConfig;
 		this->addressPortPair = copy.addressPortPair;
@@ -59,7 +67,12 @@ void Client::setUp(const HttpConfig &httpConfig,
 
 bool Client::getWhetherOutputIsPending(void) const
 {
-	return !sendBuffer.empty();
+	return sendOffset < sendBuffer.size() || bodyBytesRemaining > 0;
+}
+
+int Client::getBodyFileDescriptor(void) const
+{
+	return bodyFileDescriptor;
 }
 
 bool Client::getWhetherConnectionShouldClose(void) const
@@ -175,20 +188,59 @@ void Client::queuePlainTextResponse(HttpStatusCode statusCode,
 	response.statusCode = statusCode;
 	response.headers["Content-Type"] = "text/plain";
 	response.body = body;
+	discardSentBytes();
 	sendBuffer += HttpResponseBuilder::build(response);
+}
+
+// Drops what has already gone out, but only once the buffer is empty, so that
+// the cost is paid once per response rather than once per write.
+void Client::discardSentBytes(void)
+{
+	if (sendOffset > 0 && sendOffset == sendBuffer.size())
+	{
+		sendBuffer.clear();
+		sendOffset = 0;
+	}
+}
+
+// Tops the buffer up from the external body, if there is one still owed. A read
+// error ends the response rather than the connection quietly truncating: the
+// headers already promised a length that can no longer be met.
+void Client::refillFromBody(void)
+{
+	if (bodyBytesRemaining == 0 || sendOffset < sendBuffer.size())
+	{
+		return;
+	}
+	ssize_t bytesRead = ResponseBodyReader::appendUpTo(
+		bodyFileDescriptor, bodyBytesRemaining,
+		ResponseBodyReader::DEFAULT_READ_SIZE, sendBuffer);
+	if (bytesRead <= 0)
+	{
+		bodyBytesRemaining = 0;
+		shouldClose = true;
+		return;
+	}
+	bodyBytesRemaining -= static_cast<std::size_t>(bytesRead);
 }
 
 void Client::onSend(int fileDescriptor)
 {
 	ssize_t bytesSent;
 
-	bytesSent = send(fileDescriptor, sendBuffer.data(), sendBuffer.size(), 0);
+	discardSentBytes();
+	refillFromBody();
+	if (sendOffset >= sendBuffer.size())
+	{
+		return;
+	}
+	bytesSent = send(fileDescriptor, sendBuffer.data() + sendOffset,
+	                 sendBuffer.size() - sendOffset, 0);
 	if (bytesSent < 0)
 	{
 		shouldClose = true;
+		return;
 	}
-	else if (bytesSent > 0)
-	{
-		sendBuffer.erase(0, static_cast<std::size_t>(bytesSent));
-	}
+	sendOffset += static_cast<std::size_t>(bytesSent);
+	discardSentBytes();
 }

@@ -147,9 +147,14 @@ std::string HttpResponseBuilder::build(const HttpResponse &res)
 	// response — the framing hole this field exists to close.
 	if (!HttpStatusCodeHelpers::takesNoValue(res.statusCode))
 	{
-		out << "Content-Length: " << res.body.size() << "\r\n";
+		out << "Content-Length: " << res.getBodyLength() << "\r\n";
 		out << "\r\n";
-		out << res.body;
+		// An external body is not here to be written. build() produces the head
+		// and the caller streams the rest from whatever holds it.
+		if (!res.bodyIsExternal)
+		{
+			out << res.body;
+		}
 		return out.str();
 	}
 	out << "\r\n";
