@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>webserv CGI demo</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <h1>webserv — CGI demo</h1>
+        <p>Static HTML/CSS served directly, forms below hand off to CGI scripts.</p>
+    </header>
+
+    <main>
+        <section class="card">
+            <h2>1. GET request → CGI</h2>
+            <p>Submitting this sends your name in the query string. The server
+               runs <code>cgi-bin/greet.py</code>, which reads
+               <code>QUERY_STRING</code> and prints an HTML response.</p>
+            <form action="/cgi-bin/greet.py" method="GET">
+                <label for="name">Your name:</label>
+                <input type="text" id="name" name="name" placeholder="Ana" required>
+                <button type="submit">Greet me</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>2. POST request → CGI</h2>
+            <p>Submitting this sends the message in the request body. The server
+               runs <code>cgi-bin/guestbook.py</code>, which reads
+               <code>CONTENT_LENGTH</code> bytes from stdin.</p>
+            <form action="/cgi-bin/guestbook.py" method="POST">
+                <label for="author">Name:</label>
+                <input type="text" id="author" name="author" placeholder="Ana" required>
+                <label for="message">Message:</label>
+                <textarea id="message" name="message" rows="3" placeholder="Hello webserv!" required></textarea>
+                <button type="submit">Sign guestbook</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>3. Broken CGI → error handling</h2>
+            <p>This deliberately points at a script that crashes, to show the
+               server returns a clean error instead of hanging or crashing itself.</p>
+            <form action="/cgi-bin/broken.py" method="GET">
+                <button type="submit">Trigger a 500</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>42 webserv project — CGI over HTTP/1.0</p>
+    </footer>
+</body>
+</html>
